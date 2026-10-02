@@ -22,6 +22,8 @@ export class DesktopPlayer {
     this.enabled = true;
     this.grounded = true;
     this.climbing = false;
+    this.lastSafePosition = this.position.clone();
+    this.safeTimer = 0;
 
     const dir = lookTarget.clone().sub(new THREE.Vector3(spawn.x, spawn.y + this.eyeHeight, spawn.z)).normalize();
     this.yaw = Math.atan2(-dir.x, -dir.z);
@@ -33,7 +35,8 @@ export class DesktopPlayer {
         e.preventDefault();
         if (document.pointerLockElement === this.domElement) this.handleJumpOrMantle();
       }
-      if (e.code === 'KeyR') this.reset();
+      if (e.code === 'KeyR') this.recoverToLastSafe();
+      if (e.code === 'KeyT') this.reset();
     };
     this.onKeyUp = (e) => this.keys.delete(e.code);
     this.onMouseMove = (e) => {
@@ -57,6 +60,17 @@ export class DesktopPlayer {
     this.velocityY = 0;
     this.grounded = true;
     this.climbing = false;
+    this.lastSafePosition.copy(this.spawn);
+    this.safeTimer = 0;
+    this.syncCamera();
+  }
+
+  recoverToLastSafe() {
+    this.position.copy(this.lastSafePosition);
+    this.velocityY = 0;
+    this.grounded = true;
+    this.climbing = false;
+    this.collision.resolvePlayer(this.position, this.radius, this.bodyHeight);
     this.syncCamera();
   }
 
@@ -159,7 +173,21 @@ export class DesktopPlayer {
       }
     }
 
-    if (this.position.y < -0.7) this.reset();
+    const resolved = this.collision.resolvePlayer(this.position, this.radius, this.bodyHeight);
+    if (resolved) this.velocityY = Math.min(this.velocityY, 0);
+
+    this.safeTimer += dt;
+    if (
+      this.grounded &&
+      !this.climbing &&
+      !this.collision.intersectsPlayer(this.position, this.radius, this.bodyHeight) &&
+      this.safeTimer >= 0.35
+    ) {
+      this.lastSafePosition.copy(this.position);
+      this.safeTimer = 0;
+    }
+
+    if (this.position.y < -0.7) this.recoverToLastSafe();
     this.syncCamera();
   }
 
