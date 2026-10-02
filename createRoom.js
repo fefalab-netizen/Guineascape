@@ -62,6 +62,15 @@ export function createRoom(scene, collision) {
     castShadow: false,
   });
   recoveryCloth.rotation.z = -0.04;
+  for (let y = 0.14; y < 0.96; y += 0.16) {
+    box(room, {
+      name: 'DRESSER CLOTH GRIP',
+      size: [0.15, 0.018, 0.50],
+      position: [4.775, y, 2.72],
+      color: 0x6f5d50,
+      castShadow: false,
+    });
+  }
   collision.addClimbable({
     minX: 4.70, maxX: 4.88,
     minY: 0.0, maxY: 1.02,
@@ -71,6 +80,76 @@ export function createRoom(scene, collision) {
     exitZ: 2.72,
     tag: 'dresser-recovery-cloth',
   });
+
+  // Night 1 hiding spot: a cardboard shoebox with its front open toward the dresser.
+  const cardboard = new THREE.MeshStandardMaterial({ color: 0x8b6b45, roughness: 1 });
+  const hideCenterX = 3.05;
+  const hideCenterZ = 1.72;
+  const hideW = 0.72;
+  const hideH = 0.24;
+  const hideD = 0.58;
+  const wall = 0.035;
+
+  box(room, {
+    name: 'NIGHT 1 HIDE roof',
+    size: [hideW, wall, hideD],
+    position: [hideCenterX, hideH, hideCenterZ],
+    material: cardboard,
+  });
+  box(room, {
+    name: 'NIGHT 1 HIDE left',
+    size: [wall, hideH, hideD],
+    position: [hideCenterX - hideW / 2, hideH / 2, hideCenterZ],
+    material: cardboard,
+  });
+  box(room, {
+    name: 'NIGHT 1 HIDE right',
+    size: [wall, hideH, hideD],
+    position: [hideCenterX + hideW / 2, hideH / 2, hideCenterZ],
+    material: cardboard,
+  });
+  box(room, {
+    name: 'NIGHT 1 HIDE back',
+    size: [hideW, hideH, wall],
+    position: [hideCenterX, hideH / 2, hideCenterZ - hideD / 2],
+    material: cardboard,
+  });
+  box(room, {
+    name: 'NIGHT 1 HIDE darkness',
+    size: [hideW - 0.08, 0.012, hideD - 0.07],
+    position: [hideCenterX, 0.008, hideCenterZ],
+    color: 0x2a2119,
+    castShadow: false,
+  });
+
+  collision.addBox(
+    new THREE.Vector3(hideCenterX, hideH, hideCenterZ),
+    new THREE.Vector3(hideW, wall, hideD),
+    'shoebox-roof',
+  );
+  collision.addBox(
+    new THREE.Vector3(hideCenterX - hideW / 2, hideH / 2, hideCenterZ),
+    new THREE.Vector3(wall, hideH, hideD),
+    'shoebox-left',
+  );
+  collision.addBox(
+    new THREE.Vector3(hideCenterX + hideW / 2, hideH / 2, hideCenterZ),
+    new THREE.Vector3(wall, hideH, hideD),
+    'shoebox-right',
+  );
+  collision.addBox(
+    new THREE.Vector3(hideCenterX, hideH / 2, hideCenterZ - hideD / 2),
+    new THREE.Vector3(hideW, hideH, wall),
+    'shoebox-back',
+  );
+
+  const hideZone = {
+    minX: hideCenterX - hideW / 2 + 0.06,
+    maxX: hideCenterX + hideW / 2 - 0.06,
+    minZ: hideCenterZ - hideD / 2 + 0.06,
+    maxZ: hideCenterZ + hideD / 2 + 0.04,
+    maxY: 0.19,
+  };
 
   // Nightstand.
   box(room, { name: 'NIGHTSTAND placeholder', size: [0.86, 0.76, 0.72], position: [-0.55, 0.38, 2.6], material: placeholder });
@@ -106,5 +185,10 @@ export function createRoom(scene, collision) {
   collision.addPlatform({ minX: -6, maxX: 6, minZ: -4.5, maxZ: 4.5, y: 0, tag: 'room-floor' });
   collision.addPlatform({ minX: 2.5, maxX: 4.8, minZ: 2.27, maxZ: 3.17, y: 1.02, tag: 'dresser-top' });
 
-  return room;
+  return {
+    room,
+    hideZone,
+    floorStart: new THREE.Vector3(4.48, 0.002, 2.35),
+    terrariumDresserTop: 1.02,
+  };
 }
