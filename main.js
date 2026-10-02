@@ -1,11 +1,10 @@
 import * as THREE from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
-import './style.css';
-import { CollisionWorld } from './core/CollisionWorld.js';
-import { createRoom } from './world/createRoom.js';
-import { createTerrarium } from './world/createTerrarium.js';
-import { DesktopPlayer } from './player/DesktopPlayer.js';
-import { XRPlayer } from './player/XRPlayer.js';
+import { CollisionWorld } from './CollisionWorld.js';
+import { createRoom } from './createRoom.js';
+import { createTerrarium } from './createTerrarium.js';
+import { DesktopPlayer } from './DesktopPlayer.js';
+import { XRPlayer } from './XRPlayer.js';
 
 const app = document.querySelector('#app');
 const startScreen = document.querySelector('#start-screen');
