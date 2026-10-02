@@ -77,6 +77,20 @@ export function createRoom(scene, collision) {
 
   // Dresser supporting the terrarium.
   box(room, { name: 'TERRARIUM DRESSER', size: [2.3, 1.02, 0.9], position: [3.65, 0.51, 2.72], color: 0x655446 });
+
+  // A small front shelf gives the hamster a safer landing area after leaving the terrarium.
+  box(room, {
+    name: 'TERRARIUM FRONT LEDGE',
+    size: [2.18, 0.10, 0.34],
+    position: [3.65, 1.01, 2.12],
+    color: 0x5c4b3f,
+  });
+  box(room, {
+    name: 'TERRARIUM FRONT LEDGE lip',
+    size: [2.18, 0.045, 0.055],
+    position: [3.65, 1.075, 1.965],
+    color: 0x493b32,
+  });
   for (let i = 0; i < 3; i++) {
     box(room, { size: [2.08, 0.24, 0.04], position: [3.65, 0.3 + i * 0.29, 2.255], color: 0x514338 });
     box(room, { size: [0.22, 0.045, 0.055], position: [3.65, 0.3 + i * 0.29, 2.22], color: 0x222321, metalness: 0.4 });
@@ -206,7 +220,7 @@ export function createRoom(scene, collision) {
   collision.addSolid(new THREE.Vector3(-6.1, -1, -4.62), new THREE.Vector3(6.1, 5, -4.38), 'wall-front');
 
   // Large placeholder furniture collision volumes.
-  collision.addBox(new THREE.Vector3(-2.55, 0.48, 1.95), new THREE.Vector3(3.15, 0.96, 2.25), 'bed');
+  collision.addBox(new THREE.Vector3(-2.55, 0.39, 1.95), new THREE.Vector3(3.15, 0.78, 2.25), 'bed');
   collision.addBox(new THREE.Vector3(1.0, 0.58, 3.55), new THREE.Vector3(2.7, 1.16, 0.86), 'desk');
   collision.addBox(new THREE.Vector3(-4.75, 1.35, -2.95), new THREE.Vector3(2.05, 2.7, 0.72), 'wardrobe');
   collision.addBox(new THREE.Vector3(3.65, 0.51, 2.72), new THREE.Vector3(2.3, 1.02, 0.9), 'dresser');
@@ -214,6 +228,7 @@ export function createRoom(scene, collision) {
 
   collision.addPlatform({ minX: -6, maxX: 6, minZ: -4.5, maxZ: 4.5, y: 0, tag: 'room-floor' });
   collision.addPlatform({ minX: 2.5, maxX: 4.8, minZ: 2.27, maxZ: 3.17, y: 1.02, tag: 'dresser-top' });
+  collision.addPlatform({ minX: 2.56, maxX: 4.74, minZ: 1.95, maxZ: 2.29, y: 1.06, tag: 'terrarium-front-ledge' });
 
   return {
     room,
