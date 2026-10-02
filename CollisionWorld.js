@@ -4,6 +4,7 @@ export class CollisionWorld {
   constructor() {
     this.solids = [];
     this.platforms = [];
+    this.climbables = [];
   }
 
   addSolid(min, max, tag = '') {
@@ -32,6 +33,25 @@ export class CollisionWorld {
     return platform;
   }
 
+  addClimbable({
+    minX, maxX, minY, maxY, minZ, maxZ,
+    topY,
+    exitX = null,
+    exitZ = null,
+    tag = '',
+  }) {
+    const climbable = {
+      minX, maxX, minY, maxY, minZ, maxZ,
+      topY,
+      exitX,
+      exitZ,
+      tag,
+      enabled: true,
+    };
+    this.climbables.push(climbable);
+    return climbable;
+  }
+
   setEnabled(handle, enabled) {
     if (handle) handle.enabled = enabled;
   }
@@ -56,6 +76,62 @@ export class CollisionWorld {
       if (position.x < p.minX || position.x > p.maxX || position.z < p.minZ || position.z > p.maxZ) continue;
       if (p.y <= position.y + maxStep && p.y > best) best = p.y;
     }
+    return best;
+  }
+
+  findClimbable(position, radius = 0.07) {
+    for (const c of this.climbables) {
+      if (!c.enabled) continue;
+      if (position.y < c.minY - 0.08 || position.y > c.maxY + 0.08) continue;
+      if (position.x + radius < c.minX || position.x - radius > c.maxX) continue;
+      if (position.z + radius < c.minZ || position.z - radius > c.maxZ) continue;
+      return c;
+    }
+    return null;
+  }
+
+  findLedge(position, direction, {
+    radius = 0.052,
+    bodyHeight = 0.14,
+    maxReach = 0.16,
+    minRise = 0.035,
+    maxRise = 0.24,
+  } = {}) {
+    const dir = direction.clone();
+    dir.y = 0;
+    if (dir.lengthSq() < 0.0001) return null;
+    dir.normalize();
+
+    const probeDistance = radius + maxReach;
+    const probeX = position.x + dir.x * probeDistance;
+    const probeZ = position.z + dir.z * probeDistance;
+
+    let best = null;
+    let bestRise = Infinity;
+
+    for (const box of this.solids) {
+      if (!box.enabled) continue;
+
+      const rise = box.max.y - position.y;
+      if (rise < minRise || rise > maxRise || rise >= bestRise) continue;
+
+      const insideX = probeX >= box.min.x - radius * 0.35 && probeX <= box.max.x + radius * 0.35;
+      const insideZ = probeZ >= box.min.z - radius * 0.35 && probeZ <= box.max.z + radius * 0.35;
+      if (!insideX || !insideZ) continue;
+
+      const candidate = position.clone();
+      candidate.x = probeX;
+      candidate.z = probeZ;
+      candidate.y = box.max.y + 0.002;
+
+      // At exactly the top of the source box it no longer overlaps that box.
+      // This also rejects mantles where another object blocks the landing space.
+      if (this.intersectsPlayer(candidate, radius, bodyHeight)) continue;
+
+      best = { position: candidate, rise, tag: box.tag };
+      bestRise = rise;
+    }
+
     return best;
   }
 }
