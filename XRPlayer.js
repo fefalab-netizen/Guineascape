@@ -17,6 +17,8 @@ export class XRPlayer {
     this.snapLatch = false;
     this.enabled = false;
     this.grounded = true;
+    this.lastSafePosition = this.spawn.clone();
+    this.safeTimer = 0;
 
     this.rig = new THREE.Group();
     this.rig.name = 'XR hamster rig';
@@ -65,6 +67,15 @@ export class XRPlayer {
     this.rig.position.copy(this.spawn);
     this.velocityY = 0;
     this.grounded = true;
+    this.lastSafePosition.copy(this.spawn);
+    this.safeTimer = 0;
+  }
+
+  recoverToLastSafe() {
+    this.rig.position.copy(this.lastSafePosition);
+    this.velocityY = 0;
+    this.grounded = true;
+    this.collision.resolvePlayer(this.rig.position, this.radius, this.bodyHeight);
   }
 
   tryMove(delta) {
@@ -157,7 +168,20 @@ export class XRPlayer {
     this.rig.position.x = THREE.MathUtils.clamp(this.rig.position.x, -5.75, 5.75);
     this.rig.position.z = THREE.MathUtils.clamp(this.rig.position.z, -4.25, 4.25);
 
-    if (this.rig.position.y < -0.7) this.reset();
+    const resolved = this.collision.resolvePlayer(this.rig.position, this.radius, this.bodyHeight);
+    if (resolved) this.velocityY = Math.min(this.velocityY, 0);
+
+    this.safeTimer += dt;
+    if (
+      this.grounded &&
+      !this.collision.intersectsPlayer(this.rig.position, this.radius, this.bodyHeight) &&
+      this.safeTimer >= 0.35
+    ) {
+      this.lastSafePosition.copy(this.rig.position);
+      this.safeTimer = 0;
+    }
+
+    if (this.rig.position.y < -0.7) this.recoverToLastSafe();
 
     if (Math.abs(turn) > 0.72 && !this.snapLatch) {
       this.rig.rotation.y += -Math.sign(turn) * THREE.MathUtils.degToRad(30);
