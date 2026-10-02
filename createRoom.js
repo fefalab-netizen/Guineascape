@@ -52,6 +52,26 @@ export function createRoom(scene, collision) {
     box(room, { size: [0.22, 0.045, 0.055], position: [3.65, 0.3 + i * 0.29, 2.22], color: 0x222321, metalness: 0.4 });
   }
 
+  // Recovery cloth hanging down the right side of the dresser.
+  // It gives the player a believable way back up after falling during testing.
+  const recoveryCloth = box(room, {
+    name: 'CLIMBABLE DRESSER CLOTH',
+    size: [0.12, 1.02, 0.48],
+    position: [4.79, 0.51, 2.72],
+    color: 0x8a7768,
+    castShadow: false,
+  });
+  recoveryCloth.rotation.z = -0.04;
+  collision.addClimbable({
+    minX: 4.70, maxX: 4.88,
+    minY: 0.0, maxY: 1.02,
+    minZ: 2.43, maxZ: 3.01,
+    topY: 1.02,
+    exitX: 4.63,
+    exitZ: 2.72,
+    tag: 'dresser-recovery-cloth',
+  });
+
   // Nightstand.
   box(room, { name: 'NIGHTSTAND placeholder', size: [0.86, 0.76, 0.72], position: [-0.55, 0.38, 2.6], material: placeholder });
 
