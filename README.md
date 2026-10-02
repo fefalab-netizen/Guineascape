@@ -95,3 +95,15 @@ Look for one of these two things and send it back to ChatGPT:
 2. A failed step in **GitHub → Actions → Build and deploy to GitHub Pages**.
 
 That gives us an exact failure instead of guessing.
+
+
+## Third-party prototype asset
+
+Night 1 currently uses **CesiumMan** from KhronosGroup/glTF-Sample-Assets as a dark human silhouette.
+
+- Source: https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CesiumMan
+- Model credit: © 2017 Cesium
+- License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- Cesium logos/trademarks remain subject to their separate legal-mark terms.
+
+The model is used only as a temporary prototype human presence and is loaded from the upstream repository at runtime.
