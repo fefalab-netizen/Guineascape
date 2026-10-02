@@ -40,8 +40,8 @@ updateXRStatus();
 
 // Render slightly below the display resolution, then let CSS stretch the canvas.
 // This gives a subtle pixel texture and lowers GPU fill cost without looking overly chunky.
-const DESKTOP_RENDER_SCALE = 0.90;
-const XR_RENDER_SCALE = 0.90;
+const DESKTOP_RENDER_SCALE = 0.80;
+const XR_RENDER_SCALE = 0.80;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
