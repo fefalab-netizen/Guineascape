@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121413" />
+    <title>Hamster Escape — WebXR Prototype</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="start-screen" class="start-screen">
+      <div class="start-card">
+        <div class="eyebrow">WEBXR PROTOTYPE · DAY 1</div>
+        <h1>HAMSTER ESCAPE</h1>
+        <p>You are very small. The room is not.</p>
+        <button id="start-desktop" type="button">Play on desktop</button>
+        <div class="controls-copy">
+          <span><b>WASD</b> move</span>
+          <span><b>Mouse</b> look</span>
+          <span><b>Space</b> jump</span>
+          <span><b>E / click</b> interact</span>
+          <span><b>R</b> reset</span>
+        </div>
+        <p class="vr-note">On a WebXR headset, use the Enter VR button.</p>
+      </div>
+    </div>
+    <div id="hud">
+      <div class="day-pill">DAY 1</div>
+      <div id="objective">Objective: inspect the front glass doors.</div>
+      <div id="prompt" aria-live="polite"></div>
+      <div id="crosshair" aria-hidden="true"></div>
+    </div>
+    <div id="toast" aria-live="polite"></div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
