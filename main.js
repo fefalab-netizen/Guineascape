@@ -166,6 +166,7 @@ function interactFromController(controller) {
   if (item) {
     const message = item.action?.();
     if (message) toast(message);
+    updateObjective();
   }
 }
 
