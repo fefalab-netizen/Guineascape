@@ -5,6 +5,7 @@ import { createRoom } from './createRoom.js';
 import { createTerrarium } from './createTerrarium.js';
 import { DesktopPlayer } from './DesktopPlayer.js';
 import { XRPlayer } from './XRPlayer.js';
+import { NightOne } from './NightOne.js';
 
 const app = document.querySelector('#app');
 const startScreen = document.querySelector('#start-screen');
@@ -14,6 +15,7 @@ const objectiveEl = document.querySelector('#objective');
 const toastEl = document.querySelector('#toast');
 const crosshair = document.querySelector('#crosshair');
 const xrStatusEl = document.querySelector('#xr-status');
+const dayPillEl = document.querySelector('.day-pill');
 
 window.__HAMSTER_STARTED__ = true;
 
@@ -71,7 +73,8 @@ scene.fog = new THREE.Fog(0x9fa69f, 4.5, 13.5);
 const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.012, 30);
 
 // Lighting intentionally soft/simple for a low-poly prototype.
-scene.add(new THREE.HemisphereLight(0xdbe7ee, 0x57483d, 1.45));
+const hemi = new THREE.HemisphereLight(0xdbe7ee, 0x57483d, 1.45);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d6, 2.2);
 sun.position.set(-3.5, 6.5, -2.5);
 sun.castShadow = true;
@@ -84,7 +87,7 @@ scene.add(sun);
 
 const collision = new CollisionWorld();
 const interactables = [];
-createRoom(scene, collision);
+const roomMeta = createRoom(scene, collision);
 const terrarium = createTerrarium(scene, collision, interactables);
 
 const spawn = terrarium.getSpawn();
@@ -140,8 +143,18 @@ function updateDesktopInteraction() {
 function updateObjective() {
   const state = terrarium.getPuzzleState?.();
   if (!state) return;
-  if (state.open) {
-    objectiveEl.textContent = 'Objective: squeeze through the open glass doors and explore the dresser.';
+
+  if (nightOne?.started && !nightOne.complete) return;
+  if (nightOne?.complete) {
+    objectiveEl.textContent = 'Night 1 complete. Day 2 will begin from here.';
+    return;
+  }
+
+  const p = getActivePlayerPosition?.();
+  if (state.open && p && p.y < 0.16) {
+    objectiveEl.textContent = 'Objective: stay near cover. Evening is approaching.';
+  } else if (state.open) {
+    objectiveEl.textContent = 'Objective: climb down the hanging cloth to the bedroom floor.';
   } else if (state.branchReady) {
     objectiveEl.textContent = 'Objective: climb the braced branch and reach the latch.';
   } else if (state.bowlMoved) {
@@ -179,7 +192,45 @@ const xrPlayer = new XRPlayer({
   interact: interactFromController,
 });
 
+
+let audioContext = null;
+function ensureAudio() {
+  if (!audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioContext = new AudioContextClass();
+  }
+  audioContext?.resume?.();
+  nightOne?.setAudioContext(audioContext);
+}
+
+function getActivePlayerPosition() {
+  return renderer.xr.isPresenting ? xrPlayer.rig.position : desktopPlayer.position;
+}
+
+const nightOne = new NightOne({
+  scene,
+  sun,
+  hemi,
+  hideZone: roomMeta.hideZone,
+  getPlayerPosition: getActivePlayerPosition,
+  onMessage: toast,
+  onObjective: (message) => {
+    objectiveEl.textContent = message;
+  },
+  onNightLabel: (label) => {
+    if (dayPillEl) dayPillEl.textContent = label;
+  },
+  onCaught: () => {
+    if (renderer.xr.isPresenting) xrPlayer.reset();
+    else desktopPlayer.reset();
+    nightOne.retryFromDay();
+    toast('You wake back in the terrarium. Try the escape again.');
+    updateObjective();
+  },
+});
+
 function startDesktopPlay() {
+  ensureAudio();
   startScreen.classList.add('hidden');
   desktopPlayer.requestPointerLock();
 }
@@ -200,6 +251,7 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 renderer.xr.addEventListener('sessionstart', () => {
+  ensureAudio();
   startScreen.classList.add('hidden');
   crosshair.style.display = 'none';
   promptEl.classList.remove('visible');
@@ -219,6 +271,19 @@ const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.04);
   terrarium.update(dt);
+
+  const puzzleState = terrarium.getPuzzleState?.();
+  const playerPos = getActivePlayerPosition();
+  if (
+    puzzleState?.open &&
+    !nightOne.started &&
+    !nightOne.complete &&
+    playerPos.y < 0.16
+  ) {
+    nightOne.begin();
+  }
+  nightOne.update(dt);
+
   if (renderer.xr.isPresenting) {
     xrPlayer.update(dt);
   } else {
