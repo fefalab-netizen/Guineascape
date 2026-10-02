@@ -7,15 +7,19 @@ export class XRPlayer {
     this.scene = scene;
     this.collision = collision;
     this.interact = interact;
-    this.hamsterScale = 0.07; // ~1.7 m human eye becomes ~12 cm hamster eye.
+    this.hamsterScale = 0.07;
     this.speed = 0.72;
+    this.climbSpeed = 0.38;
+    this.gravity = 2.6;
+    this.velocityY = 0;
+    this.radius = 0.055;
+    this.bodyHeight = 0.14;
     this.snapLatch = false;
     this.enabled = false;
+    this.grounded = true;
 
     this.rig = new THREE.Group();
     this.rig.name = 'XR hamster rig';
-    // Desktop uses an unscaled rig at the world origin. On XR session start
-    // we move/scale this rig so real head movement becomes hamster-sized.
     this.spawn = spawn.clone();
     this.rig.position.set(0, 0, 0);
     this.rig.scale.setScalar(1);
@@ -29,7 +33,10 @@ export class XRPlayer {
       const geo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1.5),
       ]);
-      const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }));
+      const line = new THREE.Line(
+        geo,
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }),
+      );
       line.name = 'XR interaction ray';
       controller.add(line);
       controller.addEventListener('selectstart', () => this.interact(controller));
@@ -37,12 +44,15 @@ export class XRPlayer {
 
     renderer.xr.addEventListener('sessionstart', () => {
       this.enabled = true;
+      this.velocityY = 0;
+      this.grounded = true;
       this.rig.position.copy(this.spawn);
       this.rig.rotation.set(0, 0, 0);
       this.rig.scale.setScalar(this.hamsterScale);
       this.camera.position.set(0, 0, 0);
       this.camera.rotation.set(0, 0, 0);
     });
+
     renderer.xr.addEventListener('sessionend', () => {
       this.enabled = false;
       this.rig.position.set(0, 0, 0);
@@ -51,14 +61,35 @@ export class XRPlayer {
     });
   }
 
+  reset() {
+    this.rig.position.copy(this.spawn);
+    this.velocityY = 0;
+    this.grounded = true;
+  }
+
+  tryMove(delta) {
+    if (Math.abs(delta.x) > 0) {
+      const test = this.rig.position.clone();
+      test.x += delta.x;
+      if (!this.collision.intersectsPlayer(test, this.radius, this.bodyHeight)) {
+        this.rig.position.x = test.x;
+      }
+    }
+    if (Math.abs(delta.z) > 0) {
+      const test = this.rig.position.clone();
+      test.z += delta.z;
+      if (!this.collision.intersectsPlayer(test, this.radius, this.bodyHeight)) {
+        this.rig.position.z = test.z;
+      }
+    }
+  }
+
   update(dt) {
     if (!this.enabled) return;
     const session = this.renderer.xr.getSession();
     if (!session) return;
 
     const sources = [...session.inputSources];
-    if (!sources.length) return;
-
     const xrCamera = this.renderer.xr.getCamera(this.camera);
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(xrCamera.quaternion);
     forward.y = 0;
@@ -73,22 +104,60 @@ export class XRPlayer {
     for (const source of sources) {
       const gp = source.gamepad;
       if (!gp || gp.axes.length < 2) continue;
-      const ax = Math.abs(gp.axes[gp.axes.length - 2]) > 0.14 ? gp.axes[gp.axes.length - 2] : 0;
-      const ay = Math.abs(gp.axes[gp.axes.length - 1]) > 0.14 ? gp.axes[gp.axes.length - 1] : 0;
+
+      const ax = Math.abs(gp.axes[gp.axes.length - 2]) > 0.14
+        ? gp.axes[gp.axes.length - 2]
+        : 0;
+      const ay = Math.abs(gp.axes[gp.axes.length - 1]) > 0.14
+        ? gp.axes[gp.axes.length - 1]
+        : 0;
+
       if (source.handedness === 'left') {
-        moveX = ax; moveY = ay;
+        moveX = ax;
+        moveY = ay;
       } else if (source.handedness === 'right') {
         turn = ax;
       }
     }
 
-    const delta = right.multiplyScalar(moveX).add(forward.multiplyScalar(-moveY)).multiplyScalar(this.speed * dt);
-    // The rig itself is in world space; physical head movement is scaled separately by rig scale.
-    this.rig.position.add(delta);
+    const climbable = this.collision.findClimbable(this.rig.position, this.radius + 0.04);
+    const wantsClimb = moveY < -0.25;
 
-    // Keep locomotion inside broad room bounds for this first prototype.
+    if (climbable && wantsClimb) {
+      this.velocityY = 0;
+      this.rig.position.y += this.climbSpeed * dt;
+
+      if (this.rig.position.y >= climbable.topY - 0.01) {
+        this.rig.position.y = climbable.topY + 0.002;
+        if (climbable.exitX !== null) this.rig.position.x = climbable.exitX;
+        if (climbable.exitZ !== null) this.rig.position.z = climbable.exitZ;
+        this.grounded = true;
+      }
+    } else {
+      const delta = right
+        .multiplyScalar(moveX)
+        .add(forward.multiplyScalar(-moveY))
+        .multiplyScalar(this.speed * dt);
+
+      this.tryMove(delta);
+
+      this.velocityY -= this.gravity * dt;
+      this.rig.position.y += this.velocityY * dt;
+
+      const ground = this.collision.groundBelow(this.rig.position, 0.08);
+      if (this.rig.position.y <= ground) {
+        this.rig.position.y = ground;
+        this.velocityY = 0;
+        this.grounded = true;
+      } else {
+        this.grounded = false;
+      }
+    }
+
     this.rig.position.x = THREE.MathUtils.clamp(this.rig.position.x, -5.75, 5.75);
     this.rig.position.z = THREE.MathUtils.clamp(this.rig.position.z, -4.25, 4.25);
+
+    if (this.rig.position.y < -0.7) this.reset();
 
     if (Math.abs(turn) > 0.72 && !this.snapLatch) {
       this.rig.rotation.y += -Math.sign(turn) * THREE.MathUtils.degToRad(30);
