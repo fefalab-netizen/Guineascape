@@ -137,11 +137,25 @@ function updateDesktopInteraction() {
   }
 }
 
+function updateObjective() {
+  const state = terrarium.getPuzzleState?.();
+  if (!state) return;
+  if (state.open) {
+    objectiveEl.textContent = 'Objective: squeeze through the open glass doors and explore the dresser.';
+  } else if (state.branchReady) {
+    objectiveEl.textContent = 'Objective: climb the braced branch and reach the latch.';
+  } else if (state.bowlMoved) {
+    objectiveEl.textContent = 'Objective: pull the branch down onto the food dish.';
+  } else {
+    objectiveEl.textContent = 'Objective: find a way to reach the front-door latch.';
+  }
+}
+
 function activateCurrent() {
   if (!currentInteraction) return;
   const message = currentInteraction.action?.();
   if (message) toast(message);
-  objectiveEl.textContent = 'Objective: get through the front opening and look at the huge room.';
+  updateObjective();
 }
 
 function interactFromController(controller) {
@@ -197,6 +211,8 @@ renderer.xr.addEventListener('sessionend', () => {
   camera.position.copy(desktopPlayer.position);
   crosshair.style.display = '';
 });
+
+updateObjective();
 
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
