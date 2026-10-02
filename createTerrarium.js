@@ -142,6 +142,17 @@ export function createTerrarium(scene, collision, interactables) {
   branch.name = 'Climbing branch';
   cylinder(group, { radius: 0.018, height: 0.28, position: [-0.19, bottom + 0.34, 0.02], rotation: [0.18, 0.2, -0.68], material: woodMat, radialSegments: 8 });
 
+  const cordMat = new THREE.MeshStandardMaterial({ color: 0xc8a36a, roughness: 1 });
+  const branchCord = cylinder(group, {
+    radius: 0.012,
+    height: 0.16,
+    position: [-0.27, bottom + 0.49, -0.06],
+    rotation: [0.05, 0.1, 0.18],
+    material: cordMat,
+    radialSegments: 7,
+  });
+  branchCord.name = 'Branch retaining cord';
+
   // Basking rock / platform.
   box(group, { name: 'Basking rock', size: [0.27, 0.09, 0.22], position: [0.04, bottom + 0.115, 0.23], color: 0x77736a });
 
@@ -170,6 +181,7 @@ export function createTerrarium(scene, collision, interactables) {
 
   // Day 1 puzzle state.
   let bowlMoved = false;
+  let cordChewed = false;
   let branchReady = false;
   let escaped = false;
   let bowlPlatform = null;
@@ -257,23 +269,36 @@ export function createTerrarium(scene, collision, interactables) {
       dishInner.position.set(0.02, bottom + 0.137, -0.19);
       collision.setEnabled(bowlPlatform, true);
       bowlInteraction.prompt = 'The dish is in position.';
-      branchInteraction.prompt = 'E / trigger — pull the branch down onto the dish';
+      cordInteraction.prompt = 'E / trigger — chew through the cord holding the branch';
+      branchInteraction.prompt = 'The cord is holding the branch. Chew it through.';
       return 'The stone dish scrapes across the bedding. It can work as a step.';
+    },
+  };
+
+  const cordInteraction = {
+    object: branchCord,
+    prompt: 'The cord is too high to reach from the bedding.',
+    distance: 0.34,
+    action: () => {
+      if (!bowlMoved) return 'You need something to stand on. The heavy food dish could fit underneath.';
+      if (cordChewed) return 'The cord is already chewed through.';
+      cordChewed = true;
+      branchCord.visible = false;
+      branchReady = true;
+      collision.setEnabled(branchClimbable, true);
+      latchInteraction.prompt = 'E / trigger — push up the terrarium latch';
+      return 'You gnaw through the cord. SNAP — the branch drops onto the dish and becomes a ramp.';
     },
   };
 
   const branchInteraction = {
     object: branch,
-    prompt: 'The branch is too high. Move something beneath it first.',
-    distance: 0.46,
+    prompt: 'The branch is tied up out of reach.',
+    distance: 0.44,
     action: () => {
-      if (!bowlMoved) return 'You cannot get enough leverage yet. The food dish might help.';
-      if (branchReady) return 'The branch is already braced into a climbable ramp.';
-      branchReady = true;
-      collision.setEnabled(branchClimbable, true);
-      branchInteraction.prompt = 'The branch is braced. Hold W or Space against it to climb.';
-      latchInteraction.prompt = 'E / trigger — lift the terrarium latch';
-      return 'The branch drops onto the dish and forms a steep little ramp to the latch.';
+      if (!bowlMoved) return 'It is tied too high. Push something underneath first.';
+      if (!cordChewed) return 'The cord is holding it up. Climb onto the dish and chew through the cord.';
+      return 'The loose branch is now your ramp to the latch.';
     },
   };
 
@@ -297,7 +322,7 @@ export function createTerrarium(scene, collision, interactables) {
     },
   };
 
-  interactables.push(bowlInteraction, branchInteraction, latchInteraction);
+  interactables.push(bowlInteraction, cordInteraction, branchInteraction, latchInteraction);
 
   function update(dt) {
     const speed = 3.2;
@@ -327,7 +352,7 @@ export function createTerrarium(scene, collision, interactables) {
       return new THREE.Vector3(group.position.x, insideFloor + 0.12, worldFrontZ - 0.25);
     },
     getPuzzleState() {
-      return { bowlMoved, branchReady, open, escaped };
+      return { bowlMoved, cordChewed, branchReady, open, escaped };
     },
   };
 }
