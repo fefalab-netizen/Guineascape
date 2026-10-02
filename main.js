@@ -38,13 +38,24 @@ async function updateXRStatus() {
 }
 updateXRStatus();
 
+// Render slightly below the display resolution, then let CSS stretch the canvas.
+// This gives a subtle pixel texture and lowers GPU fill cost without looking overly chunky.
+const DESKTOP_RENDER_SCALE = 0.90;
+const XR_RENDER_SCALE = 0.90;
+
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(1);
+renderer.setSize(
+  Math.max(1, Math.floor(window.innerWidth * DESKTOP_RENDER_SCALE)),
+  Math.max(1, Math.floor(window.innerHeight * DESKTOP_RENDER_SCALE)),
+  false,
+);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.xr.enabled = true;
+// WebXR renders to its own framebuffer, so apply the same gentle reduction there.
+renderer.xr.setFramebufferScaleFactor(XR_RENDER_SCALE);
 app.appendChild(renderer.domElement);
 
 const vrButton = VRButton.createButton(renderer, {
@@ -203,5 +214,9 @@ renderer.setAnimationLoop(() => {
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(
+    Math.max(1, Math.floor(window.innerWidth * DESKTOP_RENDER_SCALE)),
+    Math.max(1, Math.floor(window.innerHeight * DESKTOP_RENDER_SCALE)),
+    false,
+  );
 });
