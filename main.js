@@ -158,11 +158,11 @@ function updateObjective() {
   } else if (state.open) {
     objectiveEl.textContent = 'Objective: climb down the hanging cloth to the bedroom floor.';
   } else if (state.branchReady) {
-    objectiveEl.textContent = 'Objective: climb the braced branch and reach the latch.';
-  } else if (state.bowlMoved) {
-    objectiveEl.textContent = 'Objective: pull the branch down onto the food dish.';
+    objectiveEl.textContent = 'Objective: climb the fallen branch and push up the latch.';
+  } else if (state.bowlMoved && !state.cordChewed) {
+    objectiveEl.textContent = 'Objective: climb onto the dish and chew through the cord holding the branch.';
   } else {
-    objectiveEl.textContent = 'Objective: find a way to reach the front-door latch.';
+    objectiveEl.textContent = 'Objective: the latch is too high. Build yourself a way up.';
   }
 }
 
