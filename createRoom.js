@@ -33,6 +33,36 @@ export function createRoom(scene, collision) {
     box(room, { size: [0.16, 0.58, 0.16], position: [x, 0.29, z], material: dark });
   }
 
+  // Day 2 route: a blanket hanging from the near edge of the bed to the floor.
+  const bedBlanket = box(room, {
+    name: 'DAY 2 CLIMBABLE BLANKET',
+    size: [0.72, 0.84, 0.08],
+    position: [-1.05, 0.42, 1.18],
+    color: 0x756b62,
+    castShadow: false,
+  });
+  bedBlanket.rotation.z = -0.05;
+
+  for (let y = 0.10; y < 0.78; y += 0.14) {
+    box(room, {
+      name: 'DAY 2 BLANKET FOLD',
+      size: [0.76, 0.018, 0.095],
+      position: [-1.05, y, 1.18],
+      color: 0x665d55,
+      castShadow: false,
+    });
+  }
+
+  collision.addClimbable({
+    minX: -1.44, maxX: -0.66,
+    minY: 0.0, maxY: 0.83,
+    minZ: 1.08, maxZ: 1.29,
+    topY: 0.86,
+    exitX: -1.10,
+    exitZ: 1.36,
+    tag: 'day2-bed-blanket',
+  });
+
   // Desk and monitor.
   box(room, { name: 'DESK placeholder', size: [2.7, 0.16, 0.86], position: [1.0, 1.16, 3.55], material: placeholder });
   for (const x of [-0.18, 2.18]) for (const z of [3.24, 3.86]) {
@@ -190,5 +220,12 @@ export function createRoom(scene, collision) {
     hideZone,
     floorStart: new THREE.Vector3(4.48, 0.002, 2.35),
     terrariumDresserTop: 1.02,
+    bedTopZone: {
+      minX: -4.0,
+      maxX: -1.0,
+      minZ: 0.88,
+      maxZ: 3.08,
+      minY: 0.80,
+    },
   };
 }
