@@ -125,6 +125,26 @@ export class NightOne {
     setTimeout(() => this.onCaught?.(), 1200);
   }
 
+  retryFromDay() {
+    this.state = 'day';
+    this.time = 0;
+    this.started = false;
+    this.complete = false;
+    this.lastFootstep = -99;
+    this.flashlightPhase = 0;
+    this.flashlight.intensity = 0;
+    this.shadowWall.material.opacity = 0;
+    this.sun.intensity = 2.2;
+    this.hemi.intensity = 1.45;
+    this.scene.background.copy(this.dayBackground);
+    if (this.scene.fog) {
+      this.scene.fog.color.copy(this.dayFog);
+      this.scene.fog.near = 4.5;
+      this.scene.fog.far = 13.5;
+    }
+    this.onNightLabel?.('DAY 1');
+  }
+
   finish() {
     if (this.complete) return;
     this.complete = true;
