@@ -17,12 +17,12 @@ export class XRPlayer {
     this.snapLatch = false;
     this.enabled = false;
     this.grounded = true;
-    this.lastSafePosition = this.spawn.clone();
-    this.safeTimer = 0;
 
     this.rig = new THREE.Group();
     this.rig.name = 'XR hamster rig';
     this.spawn = spawn.clone();
+    this.lastSafePosition = this.spawn.clone();
+    this.safeTimer = 0;
     this.rig.position.set(0, 0, 0);
     this.rig.scale.setScalar(1);
     scene.add(this.rig);
