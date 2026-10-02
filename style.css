@@ -81,3 +81,34 @@ button {
 @media (max-width: 640px) {
   #objective { top: 58px; max-width: calc(100% - 24px); }
 }
+
+
+.fatal-error {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(25, 4, 4, 0.94);
+  color: #fff4f0;
+}
+.fatal-error[hidden] { display: none; }
+.fatal-card {
+  width: min(720px, 100%);
+  padding: 22px;
+  border: 1px solid rgba(255, 150, 130, 0.35);
+  border-radius: 14px;
+  background: #24100d;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
+}
+.fatal-card strong { font-size: 18px; }
+#fatal-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ffd8cf;
+}
+.fatal-help { opacity: 0.72; font-size: 12px; }

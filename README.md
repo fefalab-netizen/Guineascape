@@ -1,30 +1,70 @@
-# Hamster Escape — WebXR room prototype
+# Hamster Escape — WebXR room prototype v2
 
-A GitHub-ready Three.js + WebXR prototype for a first-person hamster escape game.
+A small Three.js/WebXR prototype for the hamster escape game. The room uses simple placeholder geometry; the reptile-style front-opening terrarium is more detailed because it is the player's starting environment.
+
+## Important: what was fixed in v2
+
+The first archive deployed the raw `src/` folder directly to GitHub Pages even though the project contained a Vite-only CSS import (`import './style.css'`). That can stop the module graph before the game initializes, producing a blank/non-working page on both desktop and VR.
+
+**v2 fixes that architecture:** GitHub Actions now installs the dependencies, runs Vite, and deploys the compiled `dist/` folder.
+
+The page also has a visible startup-error panel. If the app ever crashes during boot, it should show the actual JavaScript error instead of silently staying blank.
 
 ## What is implemented
 
-- One oversized low-poly bedroom built at real-ish meter scale.
-- Hamster-height desktop camera (~10.5 cm eye height).
-- Detailed front-opening reptile-style glass terrarium.
-- Twin glass doors, frame, vents, mesh top, deep substrate, hide, bowls, branch, plant, basking rock and heat lamp.
-- Interactive terrarium latch; doors animate open/closed.
-- Desktop movement: WASD, mouse look, jump, run, interaction.
-- WebXR: headset-scale world rig, controller-ray interaction, left-stick locomotion and right-stick snap turn.
-- Basic collision and floor/platform support.
-- Zero-build GitHub Pages deployment workflow.
+- 12 m × 9 m stylized bedroom at hamster scale.
+- Desktop first-person camera around 10.5 cm above the hamster's feet.
+- Bed, desk, monitor, wardrobe, dresser, nightstand, rug, room door and window placeholders.
+- Detailed reptile-style terrarium with:
+  - twin front-opening glass doors
+  - door frames and hinges
+  - working center latch
+  - side/back glass
+  - vent strip
+  - mesh top
+  - substrate
+  - hide
+  - food and water dishes
+  - climbing branches
+  - fake plant
+  - basking rock
+  - heat lamp
+- Basic collisions, gravity, jumping and resetting.
+- Desktop pointer-lock controls.
+- WebXR entry button, headset-scale rig, controller-ray interaction, left-stick locomotion and right-stick snap turning.
 
-## Fastest way to try it on GitHub
+## Easiest way to test it
+
+### GitHub Pages
 
 1. Create a new empty GitHub repository.
-2. Upload/push **everything in this folder**, including `.github`.
-3. Make sure the default branch is `main`.
-4. Open the repository's **Settings → Pages**.
-5. Under **Build and deployment → Source**, choose **GitHub Actions**.
-6. Open the **Actions** tab. The included workflow publishes `index.html` and `src/` directly.
-7. When the deploy finishes, open the GitHub Pages URL.
+2. Upload **the contents of this folder**, not the outer ZIP/folder itself.
+3. Make sure these items appear at the repository root:
+   - `index.html`
+   - `package.json`
+   - `vite.config.js`
+   - `src/`
+   - `.github/`
+4. Make sure the default branch is `main`.
+5. Go to **Settings → Pages**.
+6. Under **Build and deployment → Source**, choose **GitHub Actions**.
+7. Open the **Actions** tab and wait for **Build and deploy to GitHub Pages** to finish successfully.
+8. Open the Pages URL printed by the deployment.
 
-There is no npm build required for GitHub Pages. The browser uses an import map pinned to `three@0.186.1` from jsDelivr.
+The production site must be opened through the GitHub Pages `https://...` address for WebXR. Do not use the GitHub source-file preview URL.
+
+### Local desktop development
+
+You need Node.js installed:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the local URL printed by Vite.
+
+Do **not** test by double-clicking `index.html`; this is a module-based web app and should be served over HTTP/HTTPS.
 
 ## Desktop controls
 
@@ -33,39 +73,25 @@ There is no npm build required for GitHub Pages. The browser uses an import map 
 - `Shift` — run
 - `Space` — jump
 - `E` or left click — interact
-- `R` — reset inside the terrarium
+- `R` — respawn inside the terrarium
 
-Walk toward the center latch on the two front glass doors and look directly at it. A prompt will appear.
+Press **Play on desktop** and allow the browser to capture the mouse. Walk toward the center latch between the two glass doors. When the interaction prompt appears, press `E`.
 
-## WebXR controls
+## VR controls
 
-- Left controller stick — move
-- Right controller stick — 30° snap turn
-- Trigger — interact with the object your controller ray points at
+Open the **same GitHub Pages HTTPS URL** in a WebXR-capable headset browser.
 
-Open the deployed **HTTPS** GitHub Pages URL in a WebXR-capable headset browser and press **ENTER VR**. The player rig scales physical headset movement down so normal human head height reads approximately as hamster eye height in the room.
+- Left stick — move
+- Right stick — 30° snap turn
+- Trigger — interact along the controller ray
 
-## Optional local development
+The start panel now reports whether that browser exposes `immersive-vr`. If supported, the Three.js **ENTER VR** button appears in the lower-left.
 
-The project also includes Vite if you want hot reload:
+## If it still fails
 
-```bash
-npm install
-npm run dev
-```
+Look for one of these two things and send it back to ChatGPT:
 
-Or use any ordinary local static server. Do not double-click `index.html` from the filesystem; ES modules should be served over HTTP.
+1. The red/black **prototype crashed while starting** box and its exact error text.
+2. A failed step in **GitHub → Actions → Build and deploy to GitHub Pages**.
 
-## Current prototype scope
-
-This is intentionally the **room + terrarium foundation**, not Day 1 gameplay yet. The direct latch interaction is a temporary test interaction. Next we can replace it with the real Day 1 puzzle where the hamster has to manipulate objects inside the enclosure to reach/release the latch.
-
-Suggested next steps:
-
-1. Tune room and hamster scale in VR.
-2. Replace direct latch interaction with the Day 1 physical puzzle.
-3. Add climbable surfaces / grabbing.
-4. Build the terrarium-to-dresser-to-floor descent route.
-5. Add day/night lighting.
-6. Add the unseen-human system: footsteps, shadows, environmental movement, flashlight and vibration.
-7. Add seven-day progression/save state.
+That gives us an exact failure instead of guessing.

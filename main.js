@@ -14,6 +14,30 @@ const promptEl = document.querySelector('#prompt');
 const objectiveEl = document.querySelector('#objective');
 const toastEl = document.querySelector('#toast');
 const crosshair = document.querySelector('#crosshair');
+const xrStatusEl = document.querySelector('#xr-status');
+
+window.__HAMSTER_STARTED__ = true;
+
+async function updateXRStatus() {
+  if (!xrStatusEl) return;
+  if (!window.isSecureContext) {
+    xrStatusEl.textContent = 'VR requires HTTPS. GitHub Pages will provide it automatically.';
+    return;
+  }
+  if (!('xr' in navigator)) {
+    xrStatusEl.textContent = 'WebXR is not exposed by this browser. Desktop mode can still be used.';
+    return;
+  }
+  try {
+    const supported = await navigator.xr.isSessionSupported('immersive-vr');
+    xrStatusEl.textContent = supported
+      ? 'VR detected — use the ENTER VR button at the lower-left.'
+      : 'This browser reports that immersive VR is unavailable. Desktop mode can still be used.';
+  } catch (error) {
+    xrStatusEl.textContent = `WebXR check failed: ${error?.message ?? error}`;
+  }
+}
+updateXRStatus();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
