@@ -56,6 +56,49 @@ export class CollisionWorld {
     if (handle) handle.enabled = enabled;
   }
 
+  resolvePlayer(position, radius = 0.055, height = 0.14, maxIterations = 5) {
+    let moved = false;
+
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+      let resolvedOne = false;
+
+      for (const box of this.solids) {
+        if (!box.enabled) continue;
+
+        const playerMinY = position.y;
+        const playerMaxY = position.y + height;
+        if (playerMaxY <= box.min.y || playerMinY >= box.max.y) continue;
+
+        const overlapX =
+          Math.min(position.x + radius, box.max.x) -
+          Math.max(position.x - radius, box.min.x);
+        const overlapZ =
+          Math.min(position.z + radius, box.max.z) -
+          Math.max(position.z - radius, box.min.z);
+
+        if (overlapX <= 0 || overlapZ <= 0) continue;
+
+        const boxCenterX = (box.min.x + box.max.x) * 0.5;
+        const boxCenterZ = (box.min.z + box.max.z) * 0.5;
+        const epsilon = 0.003;
+
+        if (overlapX < overlapZ) {
+          position.x += (position.x >= boxCenterX ? overlapX : -overlapX) + (position.x >= boxCenterX ? epsilon : -epsilon);
+        } else {
+          position.z += (position.z >= boxCenterZ ? overlapZ : -overlapZ) + (position.z >= boxCenterZ ? epsilon : -epsilon);
+        }
+
+        moved = true;
+        resolvedOne = true;
+        break;
+      }
+
+      if (!resolvedOne) break;
+    }
+
+    return moved;
+  }
+
   intersectsPlayer(position, radius = 0.055, height = 0.14) {
     const playerMinY = position.y;
     const playerMaxY = position.y + height;
