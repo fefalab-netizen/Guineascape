@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HumanPresence } from './HumanPresence.js';
 
 export class NightOne {
   constructor({
@@ -36,6 +37,8 @@ export class NightOne {
     this.dayFog = new THREE.Color(0x9fa69f);
     this.nightFog = new THREE.Color(0x12171c);
 
+    this.human = new HumanPresence(this.scene);
+
     this.flashTarget = new THREE.Object3D();
     this.scene.add(this.flashTarget);
 
@@ -44,6 +47,36 @@ export class NightOne {
     this.flashlight.target = this.flashTarget;
     this.flashlight.castShadow = false;
     this.scene.add(this.flashlight);
+
+    const beamGeo = new THREE.ConeGeometry(0.72, 3.8, 18, 1, true);
+    beamGeo.rotateX(Math.PI / 2);
+    beamGeo.translate(0, 0, -1.9);
+    this.beamMesh = new THREE.Mesh(
+      beamGeo,
+      new THREE.MeshBasicMaterial({
+        color: 0xdcecff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    this.scene.add(this.beamMesh);
+
+    this.floorPool = new THREE.Mesh(
+      new THREE.CircleGeometry(0.95, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0xeaf4ff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    this.floorPool.rotation.x = -Math.PI / 2;
+    this.floorPool.position.y = 0.012;
+    this.scene.add(this.floorPool);
 
     this.shadowWall = new THREE.Mesh(
       new THREE.PlaneGeometry(1.3, 2.7),
@@ -135,6 +168,9 @@ export class NightOne {
     this.flashlightPhase = 0;
     this.darkness = 0;
     this.flashlight.intensity = 0;
+    this.beamMesh.material.opacity = 0;
+    this.floorPool.material.opacity = 0;
+    this.human.setVisible(false);
     this.shadowWall.material.opacity = 0;
     this.sun.intensity = 2.2;
     this.hemi.intensity = 1.45;
@@ -152,6 +188,9 @@ export class NightOne {
     this.complete = true;
     this.state = 'complete';
     this.flashlight.intensity = 0;
+    this.beamMesh.material.opacity = 0;
+    this.floorPool.material.opacity = 0;
+    this.human.setVisible(false);
     this.shadowWall.material.opacity = 0;
     this.darkness = 0.25;
     this.sun.intensity = 1.1;
@@ -186,6 +225,7 @@ export class NightOne {
 
     this.time += dt;
     this.updateLighting(dt);
+    this.human.update(dt);
 
     if (this.state === 'warning') {
       if (this.time > 4.5 && this.time - this.lastFootstep > 1.4) {
@@ -196,6 +236,8 @@ export class NightOne {
       if (this.time >= 10) {
         this.state = 'entry';
         this.time = 0;
+        this.human.setVisible(true);
+        this.human.setPose({ x: 4.25, z: -3.95, rotationY: Math.PI });
         this.onNightLabel?.('NIGHT 1');
         this.onMessage?.('The bedroom door opens.');
         this.onObjective?.('Stay hidden. Do not let the search light find you.');
@@ -212,6 +254,11 @@ export class NightOne {
       }
 
       const approach = THREE.MathUtils.clamp(this.time / 5.5, 0, 1);
+      this.human.setPose({
+        x: THREE.MathUtils.lerp(4.25, 3.55, approach),
+        z: THREE.MathUtils.lerp(-3.95, -2.75, approach),
+        rotationY: Math.PI * 0.92,
+      });
       this.shadowWall.position.x = THREE.MathUtils.lerp(4.8, 3.65, approach);
       this.shadowWall.material.opacity = THREE.MathUtils.lerp(0.34, 0.52, approach);
 
@@ -235,6 +282,22 @@ export class NightOne {
         THREE.MathUtils.lerp(-2.4, 3.3, zSweep),
       );
 
+      const beamStart = this.flashlight.position;
+      const beamEnd = this.flashTarget.position;
+      const beamDir = beamEnd.clone().sub(beamStart);
+      const beamLen = beamDir.length();
+
+      this.beamMesh.visible = true;
+      this.beamMesh.position.copy(beamStart);
+      this.beamMesh.scale.set(1, 1, Math.max(0.45, beamLen / 3.8));
+      this.beamMesh.lookAt(beamEnd);
+      this.beamMesh.material.opacity = 0.12;
+
+      this.floorPool.position.x = beamEnd.x;
+      this.floorPool.position.z = beamEnd.z;
+      this.floorPool.scale.setScalar(0.82 + 0.22 * Math.sin(this.flashlightPhase * 1.7));
+      this.floorPool.material.opacity = 0.40;
+
       if (this.time - this.lastFootstep > 1.6) {
         this.lastFootstep = this.time;
         this.thump(0.5);
@@ -250,7 +313,9 @@ export class NightOne {
       if (this.time >= 7.5) {
         this.state = 'tank-check';
         this.time = 0;
-        this.flashlight.intensity = 2.4;
+        this.flashlight.intensity = 3.6;
+        this.beamMesh.material.opacity = 0.10;
+        this.floorPool.material.opacity = 0.24;
         this.flashTarget.position.set(3.65, 1.2, 2.72);
         this.onMessage?.('The beam leaves the floor. Glass taps above you.');
         this.onObjective?.('Stay hidden until the human leaves.');
@@ -272,12 +337,20 @@ export class NightOne {
         this.state = 'exit';
         this.time = 0;
         this.flashlight.intensity = 0;
+        this.beamMesh.material.opacity = 0;
+        this.floorPool.material.opacity = 0;
         this.onMessage?.('The room goes quiet.');
       }
       return;
     }
 
     if (this.state === 'exit') {
+      this.human.setPose({
+        x: THREE.MathUtils.lerp(3.55, 4.45, THREE.MathUtils.clamp(this.time / 4.2, 0, 1)),
+        z: THREE.MathUtils.lerp(-2.75, -4.1, THREE.MathUtils.clamp(this.time / 4.2, 0, 1)),
+        rotationY: Math.PI,
+      });
+
       if (this.time - this.lastFootstep > 1.1 && this.time < 4.2) {
         this.lastFootstep = this.time;
         this.thump(THREE.MathUtils.lerp(0.55, 0.18, this.time / 4.2));
