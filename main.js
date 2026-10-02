@@ -6,6 +6,7 @@ import { createTerrarium } from './createTerrarium.js';
 import { DesktopPlayer } from './DesktopPlayer.js';
 import { XRPlayer } from './XRPlayer.js';
 import { NightOne } from './NightOne.js';
+import { DayTwo } from './DayTwo.js';
 
 const app = document.querySelector('#app');
 const startScreen = document.querySelector('#start-screen');
@@ -145,8 +146,9 @@ function updateObjective() {
   if (!state) return;
 
   if (nightOne?.started && !nightOne.complete) return;
+  if (dayTwo?.active || dayTwo?.complete) return;
   if (nightOne?.complete) {
-    objectiveEl.textContent = 'Night 1 complete. Day 2 will begin from here.';
+    objectiveEl.textContent = 'Morning. The next route is somewhere across the room.';
     return;
   }
 
@@ -229,6 +231,21 @@ const nightOne = new NightOne({
   },
 });
 
+
+const dayTwo = new DayTwo({
+  bedTopZone: roomMeta.bedTopZone,
+  getPlayerPosition: getActivePlayerPosition,
+  onMessage: toast,
+  onObjective: (message) => {
+    objectiveEl.textContent = message;
+  },
+  onDayLabel: (label) => {
+    if (dayPillEl) dayPillEl.textContent = label;
+  },
+});
+
+let dayTwoDelay = 0;
+
 function startDesktopPlay() {
   ensureAudio();
   startScreen.classList.add('hidden');
@@ -283,6 +300,12 @@ renderer.setAnimationLoop(() => {
     nightOne.begin();
   }
   nightOne.update(dt);
+
+  if (nightOne.complete && !dayTwo.active && !dayTwo.complete) {
+    dayTwoDelay += dt;
+    if (dayTwoDelay >= 2.5) dayTwo.begin();
+  }
+  dayTwo.update();
 
   if (renderer.xr.isPresenting) {
     xrPlayer.update(dt);
