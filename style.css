@@ -8,7 +8,13 @@
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #111412; }
-canvas { display: block; width: 100%; height: 100%; }
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
 
 .start-screen {
   position: fixed;
