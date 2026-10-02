@@ -29,6 +29,7 @@ export class NightOne {
     this.audio = null;
     this.lastFootstep = -99;
     this.flashlightPhase = 0;
+    this.darkness = 0;
 
     this.dayBackground = new THREE.Color(0x9fa69f);
     this.nightBackground = new THREE.Color(0x12171c);
@@ -132,6 +133,7 @@ export class NightOne {
     this.complete = false;
     this.lastFootstep = -99;
     this.flashlightPhase = 0;
+    this.darkness = 0;
     this.flashlight.intensity = 0;
     this.shadowWall.material.opacity = 0;
     this.sun.intensity = 2.2;
@@ -151,25 +153,31 @@ export class NightOne {
     this.state = 'complete';
     this.flashlight.intensity = 0;
     this.shadowWall.material.opacity = 0;
+    this.darkness = 0.25;
+    this.sun.intensity = 1.1;
+    this.hemi.intensity = 0.85;
+    this.scene.background.copy(this.dayBackground).lerp(this.nightBackground, 0.18);
+    if (this.scene.fog) {
+      this.scene.fog.color.copy(this.dayFog).lerp(this.nightFog, 0.18);
+      this.scene.fog.near = 4.0;
+      this.scene.fog.far = 12.0;
+    }
     this.onNightLabel?.('MORNING');
     this.onMessage?.('The footsteps fade. You survived your first night.');
     this.onObjective?.('Night 1 complete. Day 2 will begin from here.');
   }
 
   updateLighting(dt) {
-    const darkness = THREE.MathUtils.clamp(
-      this.state === 'day' ? 0 : this.time / 8,
-      0,
-      1,
-    );
+    const targetDarkness = this.state === 'day' ? 0 : 1;
+    this.darkness = THREE.MathUtils.damp(this.darkness, targetDarkness, 0.42, dt);
 
-    this.sun.intensity = THREE.MathUtils.lerp(2.2, 0.16, darkness);
-    this.hemi.intensity = THREE.MathUtils.lerp(1.45, 0.25, darkness);
-    this.scene.background.copy(this.dayBackground).lerp(this.nightBackground, darkness);
+    this.sun.intensity = THREE.MathUtils.lerp(2.2, 0.16, this.darkness);
+    this.hemi.intensity = THREE.MathUtils.lerp(1.45, 0.25, this.darkness);
+    this.scene.background.copy(this.dayBackground).lerp(this.nightBackground, this.darkness);
     if (this.scene.fog) {
-      this.scene.fog.color.copy(this.dayFog).lerp(this.nightFog, darkness);
-      this.scene.fog.near = THREE.MathUtils.lerp(4.5, 2.8, darkness);
-      this.scene.fog.far = THREE.MathUtils.lerp(13.5, 9.0, darkness);
+      this.scene.fog.color.copy(this.dayFog).lerp(this.nightFog, this.darkness);
+      this.scene.fog.near = THREE.MathUtils.lerp(4.5, 2.8, this.darkness);
+      this.scene.fog.far = THREE.MathUtils.lerp(13.5, 9.0, this.darkness);
     }
   }
 
