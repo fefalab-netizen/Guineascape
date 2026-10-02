@@ -168,6 +168,17 @@ export function createTerrarium(scene, collision, interactables) {
   lampShade.position.set(0.18, 0.91, 0.06);
   group.add(lampShade);
 
+  // Day 1 puzzle state.
+  let bowlMoved = false;
+  let branchReady = false;
+  let escaped = false;
+  let bowlPlatform = null;
+  let branchClimbable = null;
+  const branchStartPosition = branch.position.clone();
+  const branchStartRotation = branch.rotation.clone();
+  const branchReadyPosition = new THREE.Vector3(0.02, bottom + 0.31, -0.16);
+  const branchReadyRotation = new THREE.Euler(0.10, 0.0, 1.43);
+
   // Collision in WORLD coordinates.
   const worldBaseY = group.position.y;
   const worldFrontZ = group.position.z + frontZ;
@@ -209,22 +220,84 @@ export function createTerrarium(scene, collision, interactables) {
     'terrarium-right-door',
   );
 
+  // A small platform appears where the bowl ends up. It acts as the first step.
+  bowlPlatform = collision.addPlatform({
+    minX: group.position.x - 0.17,
+    maxX: group.position.x + 0.17,
+    minZ: worldFrontZ + 0.11,
+    maxZ: worldFrontZ + 0.38,
+    y: insideFloor + 0.065,
+    tag: 'puzzle-bowl-step',
+  });
+  collision.setEnabled(bowlPlatform, false);
+
+  // The branch becomes a climbable route only after it is pulled into place.
+  branchClimbable = collision.addClimbable({
+    minX: group.position.x - 0.15,
+    maxX: group.position.x + 0.15,
+    minY: insideFloor + 0.02,
+    maxY: insideFloor + 0.24,
+    minZ: worldFrontZ + 0.07,
+    maxZ: worldFrontZ + 0.32,
+    topY: insideFloor + 0.22,
+    exitX: group.position.x,
+    exitZ: worldFrontZ + 0.16,
+    tag: 'puzzle-branch',
+  });
+  collision.setEnabled(branchClimbable, false);
+
+  const bowlInteraction = {
+    object: dish,
+    prompt: 'E / trigger — push the heavy food dish toward the doors',
+    distance: 0.42,
+    action: () => {
+      if (bowlMoved) return 'The dish is already wedged beneath the front branch.';
+      bowlMoved = true;
+      dish.position.set(0.02, bottom + 0.11, -0.19);
+      dishInner.position.set(0.02, bottom + 0.137, -0.19);
+      collision.setEnabled(bowlPlatform, true);
+      bowlInteraction.prompt = 'The dish is in position.';
+      branchInteraction.prompt = 'E / trigger — pull the branch down onto the dish';
+      return 'The stone dish scrapes across the bedding. It can work as a step.';
+    },
+  };
+
+  const branchInteraction = {
+    object: branch,
+    prompt: 'The branch is too high. Move something beneath it first.',
+    distance: 0.46,
+    action: () => {
+      if (!bowlMoved) return 'You cannot get enough leverage yet. The food dish might help.';
+      if (branchReady) return 'The branch is already braced into a climbable ramp.';
+      branchReady = true;
+      collision.setEnabled(branchClimbable, true);
+      branchInteraction.prompt = 'The branch is braced. Hold W or Space against it to climb.';
+      latchInteraction.prompt = 'E / trigger — lift the terrarium latch';
+      return 'The branch drops onto the dish and forms a steep little ramp to the latch.';
+    },
+  };
+
   let open = false;
   let target = 0;
 
-  const interaction = {
+  const latchInteraction = {
     object: latch,
-    prompt: 'E / trigger — test the terrarium latch',
-    distance: 0.55,
+    prompt: 'The latch is too high to reach.',
+    distance: 0.40,
     action: () => {
-      open = !open;
-      target = open ? 1 : 0;
-      collision.setEnabled(leftDoorCollider, !open);
-      collision.setEnabled(rightDoorCollider, !open);
-      return open ? 'The latch clicks. Both glass doors swing outward.' : 'The glass doors close and the latch settles back.';
+      if (!branchReady) return 'The latch is still out of reach. Build a way up first.';
+      if (open) return 'The terrarium doors are already open.';
+      open = true;
+      escaped = true;
+      target = 1;
+      collision.setEnabled(leftDoorCollider, false);
+      collision.setEnabled(rightDoorCollider, false);
+      latchInteraction.prompt = 'The latch is open.';
+      return 'CLICK. Both glass doors swing outward. Day 1 escape route unlocked.';
     },
   };
-  interactables.push(interaction);
+
+  interactables.push(bowlInteraction, branchInteraction, latchInteraction);
 
   function update(dt) {
     const speed = 3.2;
@@ -235,6 +308,13 @@ export function createTerrarium(scene, collision, interactables) {
     leftPivot.rotation.y = next * -1.42;
     rightPivot.rotation.y = next * 1.42;
     latch.rotation.z = next * 0.55;
+
+    const branchTargetPos = branchReady ? branchReadyPosition : branchStartPosition;
+    branch.position.lerp(branchTargetPos, 1 - Math.exp(-5 * dt));
+    const targetEuler = branchReady ? branchReadyRotation : branchStartRotation;
+    branch.rotation.x = THREE.MathUtils.damp(branch.rotation.x, targetEuler.x, 5, dt);
+    branch.rotation.y = THREE.MathUtils.damp(branch.rotation.y, targetEuler.y, 5, dt);
+    branch.rotation.z = THREE.MathUtils.damp(branch.rotation.z, targetEuler.z, 5, dt);
   }
 
   return {
@@ -245,6 +325,9 @@ export function createTerrarium(scene, collision, interactables) {
     },
     getLookTarget() {
       return new THREE.Vector3(group.position.x, insideFloor + 0.12, worldFrontZ - 0.25);
+    },
+    getPuzzleState() {
+      return { bowlMoved, branchReady, open, escaped };
     },
   };
 }
