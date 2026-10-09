@@ -81,14 +81,14 @@ export function createRoom(scene, collision) {
   // A small front shelf gives the hamster a safer landing area after leaving the terrarium.
   box(room, {
     name: 'TERRARIUM FRONT LEDGE',
-    size: [2.18, 0.10, 0.34],
-    position: [3.65, 1.01, 2.12],
+    size: [2.18, 0.10, 0.50],
+    position: [3.65, 1.01, 2.13],
     color: 0x5c4b3f,
   });
   box(room, {
     name: 'TERRARIUM FRONT LEDGE lip',
     size: [2.18, 0.045, 0.055],
-    position: [3.65, 1.075, 1.965],
+    position: [3.65, 1.075, 1.895],
     color: 0x493b32,
   });
   for (let i = 0; i < 3; i++) {
@@ -219,16 +219,33 @@ export function createRoom(scene, collision) {
   collision.addSolid(new THREE.Vector3(-6.1, -1, 4.38), new THREE.Vector3(6.1, 5, 4.62), 'wall-back');
   collision.addSolid(new THREE.Vector3(-6.1, -1, -4.62), new THREE.Vector3(6.1, 5, -4.38), 'wall-front');
 
-  // Large placeholder furniture collision volumes.
-  collision.addBox(new THREE.Vector3(-2.55, 0.39, 1.95), new THREE.Vector3(3.15, 0.78, 2.25), 'bed');
-  collision.addBox(new THREE.Vector3(1.0, 0.58, 3.55), new THREE.Vector3(2.7, 1.16, 0.86), 'desk');
+  // Furniture collision follows the visible shapes rather than using oversized solid blocks.
+  // Bed frame/mattress leaves the space underneath open as a future crawl route.
+  collision.addSolid(
+    new THREE.Vector3(-4.18, 0.27, 0.77),
+    new THREE.Vector3(-0.92, 0.86, 3.13),
+    'bed-frame',
+  );
+  for (const x of [-3.95, -1.15]) for (const z of [1.0, 2.9]) {
+    collision.addBox(new THREE.Vector3(x, 0.29, z), new THREE.Vector3(0.18, 0.58, 0.18), 'bed-leg');
+  }
+
+  // Desk is a tabletop plus four legs, so the hamster can actually run underneath it.
+  collision.addBox(new THREE.Vector3(1.0, 1.16, 3.55), new THREE.Vector3(2.72, 0.18, 0.88), 'desk-top');
+  for (const x of [-0.18, 2.18]) for (const z of [3.24, 3.86]) {
+    collision.addBox(new THREE.Vector3(x, 0.54, z), new THREE.Vector3(0.16, 1.08, 0.16), 'desk-leg');
+  }
+
   collision.addBox(new THREE.Vector3(-4.75, 1.35, -2.95), new THREE.Vector3(2.05, 2.7, 0.72), 'wardrobe');
   collision.addBox(new THREE.Vector3(3.65, 0.51, 2.72), new THREE.Vector3(2.3, 1.02, 0.9), 'dresser');
   collision.addBox(new THREE.Vector3(-0.55, 0.38, 2.6), new THREE.Vector3(0.86, 0.76, 0.72), 'nightstand');
 
   collision.addPlatform({ minX: -6, maxX: 6, minZ: -4.5, maxZ: 4.5, y: 0, tag: 'room-floor' });
+  collision.addPlatform({ minX: -4.18, maxX: -0.92, minZ: 0.77, maxZ: 3.13, y: 0.86, tag: 'bed-top' });
+  collision.addPlatform({ minX: -0.36, maxX: 2.36, minZ: 3.10, maxZ: 4.00, y: 1.25, tag: 'desk-top' });
+  collision.addPlatform({ minX: -0.98, maxX: -0.12, minZ: 2.24, maxZ: 2.96, y: 0.76, tag: 'nightstand-top' });
   collision.addPlatform({ minX: 2.5, maxX: 4.8, minZ: 2.27, maxZ: 3.17, y: 1.02, tag: 'dresser-top' });
-  collision.addPlatform({ minX: 2.56, maxX: 4.74, minZ: 1.95, maxZ: 2.29, y: 1.06, tag: 'terrarium-front-ledge' });
+  collision.addPlatform({ minX: 2.56, maxX: 4.74, minZ: 1.88, maxZ: 2.39, y: 1.06, tag: 'terrarium-front-ledge' });
 
   return {
     room,
