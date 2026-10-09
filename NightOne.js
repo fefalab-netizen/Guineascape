@@ -16,6 +16,8 @@ export class NightOne {
     this.scene = scene;
     this.sun = sun;
     this.hemi = hemi;
+    this.daySunIntensity = sun.intensity;
+    this.dayHemiIntensity = hemi.intensity;
     this.hideZone = hideZone;
     this.getPlayerPosition = getPlayerPosition;
     this.onMessage = onMessage;
@@ -203,8 +205,8 @@ export class NightOne {
     this.floorPool.material.opacity = 0;
     this.human.setVisible(false);
     this.shadowWall.material.opacity = 0;
-    this.sun.intensity = 2.2;
-    this.hemi.intensity = 1.45;
+    this.sun.intensity = this.daySunIntensity;
+    this.hemi.intensity = this.dayHemiIntensity;
     this.scene.background.copy(this.dayBackground);
     if (this.scene.fog) {
       this.scene.fog.color.copy(this.dayFog);
@@ -242,8 +244,8 @@ export class NightOne {
     const targetDarkness = this.state === 'day' ? 0 : 1;
     this.darkness = THREE.MathUtils.damp(this.darkness, targetDarkness, 0.42, dt);
 
-    this.sun.intensity = THREE.MathUtils.lerp(2.2, 0.16, this.darkness);
-    this.hemi.intensity = THREE.MathUtils.lerp(1.45, 0.25, this.darkness);
+    this.sun.intensity = THREE.MathUtils.lerp(this.daySunIntensity, 0.16, this.darkness);
+    this.hemi.intensity = THREE.MathUtils.lerp(this.dayHemiIntensity, 0.25, this.darkness);
     this.scene.background.copy(this.dayBackground).lerp(this.nightBackground, this.darkness);
     if (this.scene.fog) {
       this.scene.fog.color.copy(this.dayFog).lerp(this.nightFog, this.darkness);
