@@ -112,14 +112,90 @@ export class CollisionWorld {
     return false;
   }
 
-  groundBelow(position, maxStep = 0.08) {
+  groundBelow(position, maxStep = 0.08, radius = 0.055) {
     let best = 0;
+
     for (const p of this.platforms) {
       if (!p.enabled) continue;
-      if (position.x < p.minX || position.x > p.maxX || position.z < p.minZ || position.z > p.maxZ) continue;
+      if (position.x + radius < p.minX || position.x - radius > p.maxX) continue;
+      if (position.z + radius < p.minZ || position.z - radius > p.maxZ) continue;
       if (p.y <= position.y + maxStep && p.y > best) best = p.y;
     }
+
+    for (const box of this.solids) {
+      if (!box.enabled) continue;
+      if (position.x + radius < box.min.x || position.x - radius > box.max.x) continue;
+      if (position.z + radius < box.min.z || position.z - radius > box.max.z) continue;
+      if (box.max.y <= position.y + maxStep && box.max.y > best) best = box.max.y;
+    }
+
     return best;
+  }
+
+  moveVertical(position, deltaY, radius = 0.055, height = 0.14) {
+    const startY = position.y;
+    let targetY = startY + deltaY;
+    let grounded = false;
+    let hitCeiling = false;
+    const epsilon = 0.0025;
+
+    const overlapsXZ = (minX, maxX, minZ, maxZ) => (
+      position.x + radius > minX &&
+      position.x - radius < maxX &&
+      position.z + radius > minZ &&
+      position.z - radius < maxZ
+    );
+
+    if (deltaY <= 0) {
+      let bestFloor = -Infinity;
+
+      for (const p of this.platforms) {
+        if (!p.enabled) continue;
+        if (!overlapsXZ(p.minX, p.maxX, p.minZ, p.maxZ)) continue;
+        if (p.y <= startY + epsilon && p.y >= targetY - epsilon && p.y > bestFloor) {
+          bestFloor = p.y;
+        }
+      }
+
+      for (const box of this.solids) {
+        if (!box.enabled) continue;
+        if (!overlapsXZ(box.min.x, box.max.x, box.min.z, box.max.z)) continue;
+        const top = box.max.y;
+        if (top <= startY + epsilon && top >= targetY - epsilon && top > bestFloor) {
+          bestFloor = top;
+        }
+      }
+
+      if (bestFloor > -Infinity) {
+        targetY = bestFloor;
+        grounded = true;
+      }
+    } else {
+      const startTop = startY + height;
+      const targetTop = targetY + height;
+      let nearestCeiling = Infinity;
+
+      for (const box of this.solids) {
+        if (!box.enabled) continue;
+        if (!overlapsXZ(box.min.x, box.max.x, box.min.z, box.max.z)) continue;
+        const underside = box.min.y;
+        if (
+          underside >= startTop - epsilon &&
+          underside <= targetTop + epsilon &&
+          underside < nearestCeiling
+        ) {
+          nearestCeiling = underside;
+        }
+      }
+
+      if (nearestCeiling < Infinity) {
+        targetY = nearestCeiling - height - epsilon;
+        hitCeiling = true;
+      }
+    }
+
+    position.y = targetY;
+    return { grounded, hitCeiling };
   }
 
   findClimbable(position, radius = 0.07) {
