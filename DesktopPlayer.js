@@ -8,6 +8,7 @@ export class DesktopPlayer {
     this.spawn = spawn.clone();
     this.position = spawn.clone();
     this.velocityY = 0;
+    this.moveVelocity = new THREE.Vector3();
     this.eyeHeight = 0.105;
     this.bodyHeight = 0.14;
     this.radius = 0.052;
@@ -114,7 +115,9 @@ export class DesktopPlayer {
       }
 
       // Hamsters should naturally scramble over very small lips rather than snagging.
-      const stepUp = 0.045;
+      if (!this.grounded) return;
+
+      const stepUp = 0.025;
       const stepped = test.clone();
       stepped.y += stepUp;
       if (!this.collision.intersectsPlayer(stepped, this.radius, this.bodyHeight)) {
@@ -145,8 +148,9 @@ export class DesktopPlayer {
 
     if (this.position.y >= climbable.topY - 0.01) {
       this.position.y = climbable.topY + 0.002;
-      if (climbable.exitX !== null) this.position.x = climbable.exitX;
-      if (climbable.exitZ !== null) this.position.z = climbable.exitZ;
+      if (climbable.exitX !== null) this.position.x = THREE.MathUtils.damp(this.position.x, climbable.exitX, 20, dt);
+      if (climbable.exitZ !== null) this.position.z = THREE.MathUtils.damp(this.position.z, climbable.exitZ, 20, dt);
+      this.collision.resolvePlayer(this.position, this.radius, this.bodyHeight);
       this.climbing = false;
       this.grounded = true;
     }
@@ -164,12 +168,21 @@ export class DesktopPlayer {
 
     const forward = Number(this.keys.has('KeyW')) - Number(this.keys.has('KeyS'));
     const strafe = Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA'));
-    const move = new THREE.Vector3(strafe, 0, -forward);
-    if (move.lengthSq() > 0) {
-      move.normalize();
-      move.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+    const desired = new THREE.Vector3(strafe, 0, -forward);
+
+    if (desired.lengthSq() > 0) {
+      desired.normalize();
+      desired.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
       const speed = this.keys.has('ShiftLeft') ? this.runSpeed : this.speed;
-      this.tryHorizontal(move.multiplyScalar(speed * dt));
+      desired.multiplyScalar(speed);
+    }
+
+    const accel = desired.lengthSq() > 0 ? 15 : 22;
+    const blend = 1 - Math.exp(-accel * dt);
+    this.moveVelocity.lerp(desired, blend);
+
+    if (this.moveVelocity.lengthSq() > 0.000001) {
+      this.tryHorizontal(this.moveVelocity.clone().multiplyScalar(dt));
     }
 
     if (!climbingNow) {
