@@ -7,7 +7,7 @@ import { DesktopPlayer } from './DesktopPlayer.js';
 import { XRPlayer } from './XRPlayer.js';
 import { NightOne } from './NightOne.js';
 import { DayTwo } from './DayTwo.js';
-import { applyCelShading } from './CelShading.js';
+import { applyCelShading, addCelOutlines } from './CelShading.js';
 
 const app = document.querySelector('#app');
 const startScreen = document.querySelector('#start-screen');
@@ -98,6 +98,7 @@ const terrarium = createTerrarium(scene, collision, interactables);
 // Convert opaque environment materials to a lightweight three-band cel-shaded look.
 // Transparent glass/water/beam materials are preserved.
 applyCelShading(scene);
+addCelOutlines(scene);
 
 const spawn = terrarium.getSpawn();
 const desktopPlayer = new DesktopPlayer({
