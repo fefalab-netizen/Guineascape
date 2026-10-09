@@ -1,109 +1,90 @@
-# Hamster Escape — WebXR room prototype v2
+# Guineascape / Hamster Escape — WebXR prototype
 
-A small Three.js/WebXR prototype for the hamster escape game. The room uses simple placeholder geometry; the reptile-style front-opening terrarium is more detailed because it is the player's starting environment.
+A browser + WebXR first-person escape game played from hamster scale inside one oversized bedroom.
 
-## Important: what was fixed in v2
+The current prototype focuses on the first playable slice:
 
-The first archive deployed the raw `src/` folder directly to GitHub Pages even though the project contained a Vite-only CSS import (`import './style.css'`). That can stop the module graph before the game initializes, producing a blank/non-working page on both desktop and VR.
+- Day 1 terrarium escape puzzle
+- dresser landing and climb-down route
+- floor exploration and hiding
+- Night 1 unseen-human encounter
+- visible flashlight stealth
+- Day 2 blanket route onto the bed
+- desktop + WebXR locomotion
+- 75% internal render scale for performance and a subtle pixel look
 
-**v2 fixes that architecture:** GitHub Actions now installs the dependencies, runs Vite, and deploys the compiled `dist/` folder.
+## Current gameplay
 
-The page also has a visible startup-error panel. If the app ever crashes during boot, it should show the actual JavaScript error instead of silently staying blank.
+### Day 1 — escape the terrarium
 
-## What is implemented
+1. The front latch is too high.
+2. Push the food dish toward the front of the enclosure.
+3. Climb onto the dish.
+4. Chew through the cord holding the branch up.
+5. The branch drops into a climbable ramp.
+6. Climb the branch and push up the latch.
+7. Exit onto the dresser ledge.
 
-- 12 m × 9 m stylized bedroom at hamster scale.
-- Desktop first-person camera around 10.5 cm above the hamster's feet.
-- Bed, desk, monitor, wardrobe, dresser, nightstand, rug, room door and window placeholders.
-- Detailed reptile-style terrarium with:
-  - twin front-opening glass doors
-  - door frames and hinges
-  - working center latch
-  - side/back glass
-  - vent strip
-  - mesh top
-  - substrate
-  - hide
-  - food and water dishes
-  - climbing branches
-  - fake plant
-  - basking rock
-  - heat lamp
-- Basic collisions, gravity, jumping and resetting.
-- Desktop pointer-lock controls.
-- WebXR entry button, headset-scale rig, controller-ray interaction, left-stick locomotion and right-stick snap turning.
+### Night 1
 
-## Easiest way to test it
+After reaching the bedroom floor:
 
-### GitHub Pages
+- evening begins
+- footsteps approach
+- the human enters as a large dark presence
+- a visible flashlight beam sweeps the room
+- hiding inside the cardboard shelter protects you
+- the flashlight only catches you when its visible floor pool actually remains on you long enough
+- survive until the human checks the enclosure and leaves
 
-1. Create a new empty GitHub repository.
-2. Upload **the contents of this folder**, not the outer ZIP/folder itself.
-3. Make sure these items appear at the repository root:
-   - `index.html`
-   - `package.json`
-   - `vite.config.js`
-   - `src/`
-   - `.github/`
-4. Make sure the default branch is `main`.
-5. Go to **Settings → Pages**.
-6. Under **Build and deployment → Source**, choose **GitHub Actions**.
-7. Open the **Actions** tab and wait for **Build and deploy to GitHub Pages** to finish successfully.
-8. Open the Pages URL printed by the deployment.
+### Day 2
 
-The production site must be opened through the GitHub Pages `https://...` address for WebXR. Do not use the GitHub source-file preview URL.
-
-### Local desktop development
-
-You need Node.js installed:
-
-```bash
-npm install
-npm run dev
-```
-
-Then open the local URL printed by Vite.
-
-Do **not** test by double-clicking `index.html`; this is a module-based web app and should be served over HTTP/HTTPS.
+Use the hanging blanket to climb from the floor onto the bed.
 
 ## Desktop controls
 
-- `WASD` — move
-- `Mouse` — look
-- `Shift` — run
-- `Space` — jump
-- `E` or left click — interact
-- `R` — respawn inside the terrarium
-
-Press **Play on desktop** and allow the browser to capture the mouse. Walk toward the center latch between the two glass doors. When the interaction prompt appears, press `E`.
+- **WASD** — move
+- **Mouse** — look
+- **Shift** — run
+- **Space** — jump / mantle
+- **W or Space** against climbable surfaces — climb
+- **E / left click** — interact
+- **R** — recover to the most recent safe grounded position
+- **T** — return to the terrarium test spawn
 
 ## VR controls
 
-Open the **same GitHub Pages HTTPS URL** in a WebXR-capable headset browser.
+Open the GitHub Pages HTTPS URL in a WebXR-capable headset browser.
 
-- Left stick — move
+- Left stick — move / climb when pushing forward against a climbable surface
 - Right stick — 30° snap turn
 - Trigger — interact along the controller ray
 
-The start panel now reports whether that browser exposes `immersive-vr`. If supported, the Three.js **ENTER VR** button appears in the lower-left.
+## Running on GitHub Pages
 
-## If it still fails
+This repository is currently designed to run directly as static ES modules from GitHub Pages.
 
-Look for one of these two things and send it back to ChatGPT:
+The root contains:
 
-1. The red/black **prototype crashed while starting** box and its exact error text.
-2. A failed step in **GitHub → Actions → Build and deploy to GitHub Pages**.
+- `index.html`
+- `main.js`
+- game modules such as `DesktopPlayer.js`, `NightOne.js`, etc.
+- `style.css`
 
-That gives us an exact failure instead of guessing.
+Three.js is loaded through the import map in `index.html`.
 
+Use the repository's GitHub Pages HTTPS URL. WebXR requires a secure context.
+
+## Performance
+
+The prototype intentionally renders at **75% internal resolution** and stretches the canvas to full size with CSS. This reduces GPU load and gives the game a mild pixel-textured look without becoming aggressively low-resolution.
 
 ## Third-party prototype asset
 
-Night 1 currently uses **CesiumMan** from KhronosGroup/glTF-Sample-Assets as a dark human silhouette.
+Night 1 uses **CesiumMan** from KhronosGroup/glTF-Sample-Assets as a temporary dark human silhouette.
 
 - Source: https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CesiumMan
 - Model credit: © 2017 Cesium
 - License: Creative Commons Attribution 4.0 International (CC BY 4.0)
-- Cesium logos/trademarks remain subject to their separate legal-mark terms.
 
-The model is used only as a temporary prototype human presence and is loaded from the upstream repository at runtime.
+The model is loaded from the upstream repository at runtime.
