@@ -72,3 +72,41 @@ export function makeToonMaterial(color, { emissive = 0x000000 } = {}) {
     gradientMap,
   });
 }
+
+
+export function addCelOutlines(root) {
+  const outlineMaterial = new THREE.LineBasicMaterial({
+    color: 0x171a18,
+    transparent: true,
+    opacity: 0.74,
+    depthWrite: false,
+  });
+
+  const targets = [];
+  root.traverse((object) => {
+    if (!object.isMesh || !object.geometry || !object.visible) return;
+
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    if (materials.some((m) => m?.transparent || m?.isMeshPhysicalMaterial)) return;
+
+    if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+    const size = new THREE.Vector3();
+    object.geometry.boundingBox.getSize(size);
+
+    // Outline meaningful forms, not tiny cage rails, grass, cords or decorative details.
+    const longest = Math.max(size.x, size.y, size.z);
+    const shortest = Math.min(size.x, size.y, size.z);
+    if (longest < 0.22 || shortest < 0.018) return;
+
+    targets.push(object);
+  });
+
+  for (const mesh of targets) {
+    const edges = new THREE.EdgesGeometry(mesh.geometry, 34);
+    const lines = new THREE.LineSegments(edges, outlineMaterial);
+    lines.name = 'cel outline';
+    lines.renderOrder = 2;
+    lines.raycast = () => {};
+    mesh.add(lines);
+  }
+}
