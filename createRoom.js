@@ -312,56 +312,100 @@ export function createRoom(scene, collision, interactables = []) {
     color: 0xc8c5bb,
   });
 
-  // Curtain cord from the desk to the sill.
-  const curtainCord = box(room, {
-    name: 'WINDOW CURTAIN CORD',
-    size: [0.045, 0.42, 0.045],
-    position: [-0.24, 1.36, 4.12],
-    color: 0xb7a57f,
-    castShadow: false,
-  });
-  curtainCord.rotation.z = -0.08;
+  // Day 6 route: a thick braided curtain pull slopes from the desk edge to the sill.
+  // It is deliberately generous because this is a traversal route, not a precision test.
+  const cordMat = new THREE.MeshStandardMaterial({ color: 0xb8a27c, roughness: 0.95 });
+  const cordCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.18, 1.27, 3.91),
+    new THREE.Vector3(-0.28, 1.31, 4.01),
+    new THREE.Vector3(-0.40, 1.37, 4.10),
+    new THREE.Vector3(-0.54, 1.43, 4.17),
+  ]);
+  const curtainCord = new THREE.Mesh(
+    new THREE.TubeGeometry(cordCurve, 14, 0.018, 7, false),
+    cordMat,
+  );
+  curtainCord.name = 'WINDOW CURTAIN PULL';
+  curtainCord.castShadow = true;
+  curtainCord.receiveShadow = true;
+  room.add(curtainCord);
+
+  const cordKnot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.036, 8, 6),
+    cordMat,
+  );
+  cordKnot.name = 'WINDOW CURTAIN PULL KNOT';
+  cordKnot.position.set(-0.54, 1.43, 4.17);
+  room.add(cordKnot);
+
   collision.addClimbable({
-    minX: -0.34, maxX: -0.12,
-    minY: 1.20, maxY: 1.56,
-    minZ: 4.01, maxZ: 4.22,
+    minX: -0.66, maxX: -0.08,
+    minY: 1.20, maxY: 1.48,
+    minZ: 3.86, maxZ: 4.22,
     topY: 1.41,
-    exitX: -0.30,
-    exitZ: 4.24,
-    tag: 'desk-window-cord',
+    exitX: -0.58,
+    exitZ: 4.17,
+    tag: 'desk-window-curtain-pull',
   });
 
-  // Paperclip tool on the desk.
-  const metalMat = new THREE.MeshStandardMaterial({ color: 0xb9bec1, roughness: 0.28, metalness: 0.78 });
+  // Paperclip tool: actual nested wire shape resting on a sticky note so it reads at hamster scale.
+  const stickyNote = box(room, {
+    name: 'PAPERCLIP STICKY NOTE',
+    size: [0.16, 0.006, 0.12],
+    position: [0.78, 1.258, 3.38],
+    color: 0xd6bd62,
+    castShadow: false,
+  });
+  stickyNote.rotation.y = -0.10;
+
+  const metalMat = new THREE.MeshStandardMaterial({
+    color: 0xc9ced1,
+    roughness: 0.34,
+    metalness: 0.72,
+  });
   const paperclip = new THREE.Group();
   paperclip.name = 'PAPERCLIP TOOL';
-  paperclip.position.set(0.82, 1.30, 3.38);
+  paperclip.position.set(0.78, 1.267, 3.38);
+  paperclip.rotation.y = -0.22;
   room.add(paperclip);
-  const clipOuter = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.009, 6, 14, Math.PI * 1.65), metalMat);
-  clipOuter.rotation.x = Math.PI / 2;
-  clipOuter.rotation.z = 0.22;
-  paperclip.add(clipOuter);
-  const clipStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 7), metalMat);
-  clipStem.rotation.z = Math.PI / 2;
-  clipStem.position.set(0.025, 0, -0.035);
-  paperclip.add(clipStem);
+
+  const clipPoints = [
+    new THREE.Vector3(-0.030, 0, 0.012),
+    new THREE.Vector3(0.018, 0, 0.012),
+    new THREE.Vector3(0.030, 0, 0.006),
+    new THREE.Vector3(0.033, 0, -0.006),
+    new THREE.Vector3(0.025, 0, -0.015),
+    new THREE.Vector3(-0.022, 0, -0.015),
+    new THREE.Vector3(-0.032, 0, -0.008),
+    new THREE.Vector3(-0.032, 0, 0.003),
+    new THREE.Vector3(-0.024, 0, 0.009),
+    new THREE.Vector3(0.012, 0, 0.009),
+  ];
+  const clipCurve = new THREE.CatmullRomCurve3(clipPoints, false, 'centripetal', 0.45);
+  const clipWire = new THREE.Mesh(
+    new THREE.TubeGeometry(clipCurve, 30, 0.0022, 7, false),
+    metalMat,
+  );
+  clipWire.name = 'PAPERCLIP WIRE';
+  clipWire.rotation.x = Math.PI / 2;
+  paperclip.add(clipWire);
 
   const windowLatch = new THREE.Group();
   windowLatch.name = 'WINDOW LATCH';
-  windowLatch.position.set(-1.28, 1.54, 4.23);
+  windowLatch.position.set(-1.02, 1.485, 4.235);
   room.add(windowLatch);
   box(windowLatch, {
     name: 'WINDOW LATCH BODY',
-    size: [0.18, 0.055, 0.07],
+    size: [0.24, 0.065, 0.08],
     position: [0, 0, 0],
     color: 0x4c4f4f,
     metalness: 0.55,
   });
   const latchLever = box(windowLatch, {
     name: 'WINDOW LATCH LEVER',
-    size: [0.12, 0.025, 0.035],
-    position: [0.02, 0.045, -0.01],
-    color: 0x8d9292,
+    size: [0.15, 0.030, 0.042],
+    position: [0.025, 0.050, -0.012],
+    color: 0x9aa0a0,
     metalness: 0.65,
   });
 
@@ -374,14 +418,23 @@ export function createRoom(scene, collision, interactables = []) {
   let windowOpenTarget = 0;
 
   const windowGlassCollider = collision.addSolid(
-    new THREE.Vector3(-2.36, 1.39, 4.27),
-    new THREE.Vector3(-0.24, 2.82, 4.36),
+    new THREE.Vector3(-2.36, 1.535, 4.287),
+    new THREE.Vector3(-0.24, 2.765, 4.334),
     'window-glass',
+  );
+
+  const isOnWindowSill = (playerPosition) => (
+    playerPosition &&
+    playerPosition.x >= -2.38 &&
+    playerPosition.x <= -0.18 &&
+    playerPosition.z >= 4.06 &&
+    playerPosition.z <= 4.235 &&
+    playerPosition.y >= 1.35
   );
 
   const paperclipInteraction = {
     object: paperclip,
-    distance: 0.34,
+    distance: 0.28,
     prompt: 'E / trigger — take the paperclip',
     action: ({ playerPosition } = {}) => {
       if (routeState.paperclipTaken) return 'You already have the paperclip.';
@@ -395,10 +448,10 @@ export function createRoom(scene, collision, interactables = []) {
 
   const latchInteraction = {
     object: windowLatch,
-    distance: 0.34,
-    prompt: 'E / trigger — inspect the window latch',
+    distance: 0.50,
+    prompt: 'E / trigger — work the window latch',
     action: ({ playerPosition } = {}) => {
-      if (!playerPosition || playerPosition.y < 1.32) return 'The latch is above you. Reach the windowsill first.';
+      if (!isOnWindowSill(playerPosition)) return 'You need solid footing on the windowsill first.';
       if (!routeState.paperclipTaken) return 'Your paws cannot get under the latch. Something thin and metal could.';
       if (routeState.windowUnlatched) return 'The latch is already released.';
       routeState.windowUnlatched = true;
@@ -411,11 +464,11 @@ export function createRoom(scene, collision, interactables = []) {
 
   const windowInteraction = {
     object: windowGlass,
-    distance: 0.38,
+    distance: 0.48,
     prompt: 'The window is locked.',
     action: ({ playerPosition } = {}) => {
       if (!routeState.windowUnlatched) return 'The window will not move while the latch is locked.';
-      if (!playerPosition || playerPosition.y < 1.30) return 'You need leverage from the sill.';
+      if (!isOnWindowSill(playerPosition)) return 'You need leverage from the sill.';
       if (routeState.windowOpened) return 'The window is already open.';
       routeState.windowOpened = true;
       windowOpenTarget = 1;
@@ -429,7 +482,7 @@ export function createRoom(scene, collision, interactables = []) {
 
   collision.addPlatform({
     minX: -2.45, maxX: -0.15,
-    minZ: 4.14, maxZ: 4.43,
+    minZ: 4.06, maxZ: 4.235,
     y: 1.41,
     tag: 'window-inner-sill',
   });
