@@ -440,12 +440,48 @@ export function createRoom(scene, collision, interactables = []) {
     tag: 'window-outer-sill',
   });
 
+  // Small exterior landing visible through the final window.
+  const outsideGround = box(room, {
+    name: 'OUTSIDE LANDING',
+    size: [4.8, 0.16, 3.2],
+    position: [-1.3, 1.18, 5.85],
+    color: 0x3f5b38,
+    roughness: 1,
+  });
+  outsideGround.receiveShadow = true;
+
+  // Chunky grass blades keep the low-poly look and sell the hamster scale.
+  for (let i = 0; i < 42; i++) {
+    const col = i % 7;
+    const row = Math.floor(i / 7);
+    const x = -3.25 + col * 0.62 + (row % 2) * 0.09;
+    const z = 4.85 + row * 0.43;
+    const h = 0.20 + ((i * 17) % 7) * 0.025;
+    const blade = box(room, {
+      name: 'OUTSIDE GRASS',
+      size: [0.045, h, 0.055],
+      position: [x, 1.30 + h / 2, z],
+      color: i % 3 === 0 ? 0x58764a : 0x48683f,
+      castShadow: false,
+    });
+    blade.rotation.z = ((i % 5) - 2) * 0.07;
+  }
+
+  // A simple dark horizon gives the escape a visual destination.
+  box(room, {
+    name: 'OUTSIDE HORIZON',
+    size: [8.0, 3.4, 0.12],
+    position: [-1.3, 2.3, 7.42],
+    color: 0x1d2824,
+    castShadow: false,
+  });
+
   // Basic room collision.
   collision.addSolid(new THREE.Vector3(-6.1, -1, -4.62), new THREE.Vector3(-5.86, 5, 4.62), 'wall-left');
   collision.addSolid(new THREE.Vector3(5.86, -1, -4.62), new THREE.Vector3(6.1, 5, 4.62), 'wall-right');
   collision.addSolid(new THREE.Vector3(-6.1, -1, 4.38), new THREE.Vector3(-2.50, 5, 4.62), 'wall-back-left');
   collision.addSolid(new THREE.Vector3(-0.10, -1, 4.38), new THREE.Vector3(6.1, 5, 4.62), 'wall-back-right');
-  collision.addSolid(new THREE.Vector3(-2.50, -1, 4.38), new THREE.Vector3(-0.10, 1.37, 4.62), 'wall-back-window-bottom');
+  collision.addSolid(new THREE.Vector3(-2.50, -1, 4.38), new THREE.Vector3(-0.10, 1.27, 4.62), 'wall-back-window-bottom');
   collision.addSolid(new THREE.Vector3(-2.50, 2.93, 4.38), new THREE.Vector3(-0.10, 5, 4.62), 'wall-back-window-top');
   collision.addSolid(new THREE.Vector3(-6.1, -1, -4.62), new THREE.Vector3(6.1, 5, -4.38), 'wall-front');
 
@@ -471,6 +507,7 @@ export function createRoom(scene, collision, interactables = []) {
   collision.addBox(new THREE.Vector3(-0.55, 0.38, 2.6), new THREE.Vector3(0.86, 0.76, 0.72), 'nightstand');
 
   collision.addPlatform({ minX: -6, maxX: 6, minZ: -4.5, maxZ: 4.5, y: 0, tag: 'room-floor' });
+  collision.addPlatform({ minX: -3.7, maxX: 1.1, minZ: 4.55, maxZ: 7.35, y: 1.26, tag: 'outside-ground' });
   collision.addPlatform({ minX: -4.18, maxX: -0.92, minZ: 0.77, maxZ: 3.13, y: 0.86, tag: 'bed-top' });
   collision.addPlatform({ minX: -0.36, maxX: 2.36, minZ: 3.10, maxZ: 4.00, y: 1.25, tag: 'desk-top' });
   collision.addPlatform({ minX: -0.98, maxX: -0.12, minZ: 2.24, maxZ: 2.96, y: 0.76, tag: 'nightstand-top' });
