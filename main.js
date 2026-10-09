@@ -7,6 +7,7 @@ import { DesktopPlayer } from './DesktopPlayer.js';
 import { XRPlayer } from './XRPlayer.js';
 import { NightOne } from './NightOne.js';
 import { DayTwo } from './DayTwo.js';
+import { applyCelShading } from './CelShading.js';
 
 const app = document.querySelector('#app');
 const startScreen = document.querySelector('#start-screen');
@@ -55,7 +56,9 @@ renderer.setSize(
   false,
 );
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.BasicShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.xr.enabled = true;
 // WebXR renders to its own framebuffer, so apply the same gentle reduction there.
@@ -75,9 +78,9 @@ scene.fog = new THREE.Fog(0x9fa69f, 4.5, 13.5);
 const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.012, 30);
 
 // Lighting intentionally soft/simple for a low-poly prototype.
-const hemi = new THREE.HemisphereLight(0xdbe7ee, 0x57483d, 1.45);
+const hemi = new THREE.HemisphereLight(0xdbe7ee, 0x4d4138, 1.10);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff0d6, 2.2);
+const sun = new THREE.DirectionalLight(0xfff0d6, 2.65);
 sun.position.set(-3.5, 6.5, -2.5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -91,6 +94,10 @@ const collision = new CollisionWorld();
 const interactables = [];
 const roomMeta = createRoom(scene, collision, interactables);
 const terrarium = createTerrarium(scene, collision, interactables);
+
+// Convert opaque environment materials to a lightweight three-band cel-shaded look.
+// Transparent glass/water/beam materials are preserved.
+applyCelShading(scene);
 
 const spawn = terrarium.getSpawn();
 const desktopPlayer = new DesktopPlayer({
