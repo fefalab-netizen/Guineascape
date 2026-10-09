@@ -182,6 +182,10 @@ export function createTerrarium(scene, collision, interactables) {
   // Day 1 puzzle state.
   let bowlMoved = false;
   let cordChewed = false;
+  const dishStartPosition = dish.position.clone();
+  const dishInnerStartPosition = dishInner.position.clone();
+  const dishReadyPosition = new THREE.Vector3(0.02, bottom + 0.11, -0.19);
+  const dishInnerReadyPosition = new THREE.Vector3(0.02, bottom + 0.137, -0.19);
   let branchReady = false;
   let escaped = false;
   let bowlPlatform = null;
@@ -268,8 +272,6 @@ export function createTerrarium(scene, collision, interactables) {
         return 'You need to be down in the bedding to get your weight behind the dish.';
       }
       bowlMoved = true;
-      dish.position.set(0.02, bottom + 0.11, -0.19);
-      dishInner.position.set(0.02, bottom + 0.137, -0.19);
       collision.setEnabled(bowlPlatform, true);
       bowlInteraction.prompt = 'The dish is in position.';
       cordInteraction.prompt = 'E / trigger — chew through the cord holding the branch';
@@ -342,6 +344,12 @@ export function createTerrarium(scene, collision, interactables) {
     leftPivot.rotation.y = next * -1.42;
     rightPivot.rotation.y = next * 1.42;
     latch.rotation.z = next * 0.55;
+
+    const dishTarget = bowlMoved ? dishReadyPosition : dishStartPosition;
+    const dishInnerTarget = bowlMoved ? dishInnerReadyPosition : dishInnerStartPosition;
+    const dishBlend = 1 - Math.exp(-7 * dt);
+    dish.position.lerp(dishTarget, dishBlend);
+    dishInner.position.lerp(dishInnerTarget, dishBlend);
 
     const branchTargetPos = branchReady ? branchReadyPosition : branchStartPosition;
     branch.position.lerp(branchTargetPos, 1 - Math.exp(-5 * dt));
