@@ -136,8 +136,10 @@ function updateDesktopInteraction() {
   if (currentInteraction && document.pointerLockElement === renderer.domElement) {
     promptEl.textContent = currentInteraction.prompt;
     promptEl.classList.add('visible');
+    crosshair.classList.add('interactable');
   } else {
     promptEl.classList.remove('visible');
+    crosshair.classList.remove('interactable');
   }
 }
 
@@ -168,7 +170,10 @@ function updateObjective() {
 
 function activateCurrent() {
   if (!currentInteraction) return;
-  const message = currentInteraction.action?.();
+  const message = currentInteraction.action?.({
+    playerPosition: getActivePlayerPosition().clone(),
+    source: 'desktop',
+  });
   if (message) toast(message);
   updateObjective();
 }
@@ -179,7 +184,10 @@ function interactFromController(controller) {
   tmpDirection.negate();
   const item = findInteractionFromRay(tmpOrigin, tmpDirection, 1.0);
   if (item) {
-    const message = item.action?.();
+    const message = item.action?.({
+      playerPosition: getActivePlayerPosition().clone(),
+      source: 'xr',
+    });
     if (message) toast(message);
     updateObjective();
   }
