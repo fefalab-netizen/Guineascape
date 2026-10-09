@@ -245,12 +245,12 @@ export function createTerrarium(scene, collision, interactables) {
 
   // The branch becomes a climbable route only after it is pulled into place.
   branchClimbable = collision.addClimbable({
-    minX: group.position.x - 0.15,
-    maxX: group.position.x + 0.15,
+    minX: group.position.x - 0.19,
+    maxX: group.position.x + 0.19,
     minY: insideFloor + 0.02,
     maxY: insideFloor + 0.24,
-    minZ: worldFrontZ + 0.07,
-    maxZ: worldFrontZ + 0.32,
+    minZ: worldFrontZ + 0.04,
+    maxZ: worldFrontZ + 0.36,
     topY: insideFloor + 0.22,
     exitX: group.position.x,
     exitZ: worldFrontZ + 0.16,
@@ -262,8 +262,11 @@ export function createTerrarium(scene, collision, interactables) {
     object: dish,
     prompt: 'E / trigger — push the heavy food dish toward the doors',
     distance: 0.42,
-    action: () => {
+    action: ({ playerPosition } = {}) => {
       if (bowlMoved) return 'The dish is already wedged beneath the front branch.';
+      if (playerPosition && playerPosition.y > insideFloor + 0.12) {
+        return 'You need to be down in the bedding to get your weight behind the dish.';
+      }
       bowlMoved = true;
       dish.position.set(0.02, bottom + 0.11, -0.19);
       dishInner.position.set(0.02, bottom + 0.137, -0.19);
@@ -279,9 +282,12 @@ export function createTerrarium(scene, collision, interactables) {
     object: branchCord,
     prompt: 'The cord is too high to reach from the bedding.',
     distance: 0.34,
-    action: () => {
+    action: ({ playerPosition } = {}) => {
       if (!bowlMoved) return 'You need something to stand on. The heavy food dish could fit underneath.';
       if (cordChewed) return 'The cord is already chewed through.';
+      if (!playerPosition || playerPosition.y < insideFloor + 0.045) {
+        return 'Still too high. Climb onto the food dish first.';
+      }
       cordChewed = true;
       branchCord.visible = false;
       branchReady = true;
@@ -295,7 +301,7 @@ export function createTerrarium(scene, collision, interactables) {
     object: branch,
     prompt: 'The branch is tied up out of reach.',
     distance: 0.44,
-    action: () => {
+    action: ({ playerPosition } = {}) => {
       if (!bowlMoved) return 'It is tied too high. Push something underneath first.';
       if (!cordChewed) return 'The cord is holding it up. Climb onto the dish and chew through the cord.';
       return 'The loose branch is now your ramp to the latch.';
@@ -309,9 +315,12 @@ export function createTerrarium(scene, collision, interactables) {
     object: latch,
     prompt: 'The latch is too high to reach.',
     distance: 0.40,
-    action: () => {
+    action: ({ playerPosition } = {}) => {
       if (!branchReady) return 'The latch is still out of reach. Build a way up first.';
       if (open) return 'The terrarium doors are already open.';
+      if (!playerPosition || playerPosition.y < insideFloor + 0.145) {
+        return 'Your paws cannot reach it yet. Climb higher on the branch.';
+      }
       open = true;
       escaped = true;
       target = 1;
