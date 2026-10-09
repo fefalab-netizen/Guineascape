@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { makeToonMaterial } from './CelShading.js';
 
 const MODEL_URL =
   'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/CesiumMan/glTF-Binary/CesiumMan.glb';
@@ -55,11 +56,7 @@ export class HumanPresence {
         this.model.rotation.y = Math.PI;
         this.model.position.set(0, 0, 0);
 
-        const shadowMat = new THREE.MeshStandardMaterial({
-          color: 0x080909,
-          roughness: 1,
-          metalness: 0,
-        });
+        const shadowMat = makeToonMaterial(0x080909);
 
         this.model.traverse((child) => {
           if (!child.isMesh) return;
