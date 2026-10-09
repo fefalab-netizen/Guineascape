@@ -17,6 +17,7 @@ const toastEl = document.querySelector('#toast');
 const crosshair = document.querySelector('#crosshair');
 const xrStatusEl = document.querySelector('#xr-status');
 const dayPillEl = document.querySelector('.day-pill');
+const escapeBannerEl = document.querySelector('#escape-banner');
 
 window.__HAMSTER_STARTED__ = true;
 
@@ -257,6 +258,7 @@ const dayTwo = new DayTwo({
 });
 
 let dayTwoDelay = 0;
+let escapeBannerShown = false;
 
 function startDesktopPlay() {
   ensureAudio();
@@ -319,6 +321,11 @@ renderer.setAnimationLoop(() => {
     if (dayTwoDelay >= 2.5) dayTwo.begin();
   }
   dayTwo.update();
+
+  if (dayTwo.complete && !escapeBannerShown) {
+    escapeBannerShown = true;
+    if (escapeBannerEl) escapeBannerEl.hidden = false;
+  }
 
   if (renderer.xr.isPresenting) {
     xrPlayer.update(dt);
