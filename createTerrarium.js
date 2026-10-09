@@ -106,17 +106,20 @@ export function createTerrarium(scene, collision, interactables) {
   const latchTab = box(latch, { name: 'Latch tab', size: [0.11, 0.026, 0.045], position: [0, 0.045, -0.01], color: 0x666a67, metalness: 0.4 });
   latchTab.rotation.z = -0.16;
 
-  // Interior hide.
+  // Interior hide: built as real walls + roof so the hamster can physically crawl inside.
   const hide = new THREE.Group();
   hide.position.set(-0.37, bottom + 0.12, 0.16);
   group.add(hide);
-  box(hide, { size: [0.38, 0.20, 0.28], position: [0, 0.06, 0], material: woodMat });
+  box(hide, { name: 'Hide roof', size: [0.38, 0.045, 0.28], position: [0, 0.15, 0], material: woodMat });
+  box(hide, { name: 'Hide left wall', size: [0.045, 0.15, 0.28], position: [-0.1675, 0.075, 0], material: woodMat });
+  box(hide, { name: 'Hide right wall', size: [0.045, 0.15, 0.28], position: [0.1675, 0.075, 0], material: woodMat });
+  box(hide, { name: 'Hide back wall', size: [0.29, 0.15, 0.045], position: [0, 0.075, 0.1175], material: woodMat });
   const hideEntrance = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.078, 0.078, 0.04, 18),
+    new THREE.CylinderGeometry(0.078, 0.078, 0.012, 18),
     new THREE.MeshStandardMaterial({ color: 0x17120e, roughness: 1 }),
   );
   hideEntrance.rotation.x = Math.PI / 2;
-  hideEntrance.position.set(0.08, 0.06, -0.155);
+  hideEntrance.position.set(0.08, 0.072, -0.145);
   hide.add(hideEntrance);
 
   // Stone-like food dish.
@@ -203,11 +206,110 @@ export function createTerrarium(scene, collision, interactables) {
   const worldRightX = group.position.x + W / 2;
   const insideFloor = worldBaseY + bottom + 0.095;
 
+  const localToWorld = (x, y, z) =>
+    new THREE.Vector3(group.position.x + x, group.position.y + y, group.position.z + z);
+
+  function addLocalSolid(center, size, tag) {
+    return collision.addBox(
+      localToWorld(center.x, center.y, center.z),
+      new THREE.Vector3(size.x, size.y, size.z),
+      tag,
+    );
+  }
+
+  function updateLocalSolid(handle, center, size) {
+    const worldCenter = localToWorld(center.x, center.y, center.z);
+    const halfX = size.x * 0.5;
+    const halfY = size.y * 0.5;
+    const halfZ = size.z * 0.5;
+    handle.min.set(worldCenter.x - halfX, worldCenter.y - halfY, worldCenter.z - halfZ);
+    handle.max.set(worldCenter.x + halfX, worldCenter.y + halfY, worldCenter.z + halfZ);
+  }
+
+  function updateLocalPlatform(handle, center, halfX, halfZ, topY) {
+    const worldCenter = localToWorld(center.x, 0, center.z);
+    handle.minX = worldCenter.x - halfX;
+    handle.maxX = worldCenter.x + halfX;
+    handle.minZ = worldCenter.z - halfZ;
+    handle.maxZ = worldCenter.z + halfZ;
+    handle.y = group.position.y + topY;
+  }
+
   collision.addPlatform({
-    minX: worldLeftX + 0.03, maxX: worldRightX - 0.03,
-    minZ: worldFrontZ + 0.03, maxZ: worldBackZ - 0.03,
+    minX: worldLeftX + 0.055, maxX: worldRightX - 0.055,
+    minZ: worldFrontZ + 0.055, maxZ: worldBackZ - 0.055,
     y: insideFloor, tag: 'terrarium-substrate',
   });
+
+  // The mesh lid is visually open, but physically it is still a cage roof.
+  collision.addSolid(
+    new THREE.Vector3(worldLeftX - 0.015, worldBaseY + H - 0.025, worldFrontZ - 0.015),
+    new THREE.Vector3(worldRightX + 0.015, worldBaseY + H + 0.035, worldBackZ + 0.015),
+    'terrarium-mesh-roof',
+  );
+
+  // Interior shelter collision mirrors the actual open-front geometry.
+  addLocalSolid(
+    new THREE.Vector3(-0.37, bottom + 0.27, 0.16),
+    new THREE.Vector3(0.38, 0.045, 0.28),
+    'terrarium-hide-roof',
+  );
+  addLocalSolid(
+    new THREE.Vector3(-0.5375, bottom + 0.195, 0.16),
+    new THREE.Vector3(0.045, 0.15, 0.28),
+    'terrarium-hide-left',
+  );
+  addLocalSolid(
+    new THREE.Vector3(-0.2025, bottom + 0.195, 0.16),
+    new THREE.Vector3(0.045, 0.15, 0.28),
+    'terrarium-hide-right',
+  );
+  addLocalSolid(
+    new THREE.Vector3(-0.37, bottom + 0.195, 0.2775),
+    new THREE.Vector3(0.29, 0.15, 0.045),
+    'terrarium-hide-back',
+  );
+
+  // Basking rock and water dish are real obstacles and standable landmarks.
+  addLocalSolid(
+    new THREE.Vector3(0.04, bottom + 0.115, 0.23),
+    new THREE.Vector3(0.25, 0.09, 0.20),
+    'terrarium-rock',
+  );
+  collision.addPlatform({
+    minX: group.position.x - 0.075,
+    maxX: group.position.x + 0.155,
+    minZ: group.position.z + 0.14,
+    maxZ: group.position.z + 0.32,
+    y: worldBaseY + bottom + 0.16,
+    tag: 'terrarium-rock-top',
+  });
+
+  addLocalSolid(
+    new THREE.Vector3(0.38, bottom + 0.105, -0.15),
+    new THREE.Vector3(0.22, 0.04, 0.22),
+    'terrarium-water-dish',
+  );
+  collision.addPlatform({
+    minX: group.position.x + 0.28,
+    maxX: group.position.x + 0.48,
+    minZ: group.position.z - 0.25,
+    maxZ: group.position.z - 0.05,
+    y: worldBaseY + bottom + 0.125,
+    tag: 'terrarium-water-dish-top',
+  });
+
+  // Food dish collider moves with the animated puzzle object.
+  const dishCollider = addLocalSolid(
+    dish.position,
+    new THREE.Vector3(0.24, 0.045, 0.24),
+    'terrarium-food-dish',
+  );
+  const dishTopPlatform = collision.addPlatform({
+    minX: 0, maxX: 0, minZ: 0, maxZ: 0, y: insideFloor,
+    tag: 'terrarium-food-dish-top',
+  });
+  updateLocalPlatform(dishTopPlatform, dish.position, 0.105, 0.105, dish.position.y + 0.027);
 
   collision.addSolid(
     new THREE.Vector3(worldLeftX - 0.015, worldBaseY, group.position.z - D / 2),
@@ -236,16 +338,8 @@ export function createTerrarium(scene, collision, interactables) {
     'terrarium-right-door',
   );
 
-  // A small platform appears where the bowl ends up. It acts as the first step.
-  bowlPlatform = collision.addPlatform({
-    minX: group.position.x - 0.17,
-    maxX: group.position.x + 0.17,
-    minZ: worldFrontZ + 0.11,
-    maxZ: worldFrontZ + 0.38,
-    y: insideFloor + 0.065,
-    tag: 'puzzle-bowl-step',
-  });
-  collision.setEnabled(bowlPlatform, false);
+  // The food dish itself is the first movable step.
+  bowlPlatform = dishTopPlatform;
 
   // The branch becomes a climbable route only after it is pulled into place.
   branchClimbable = collision.addClimbable({
@@ -272,7 +366,6 @@ export function createTerrarium(scene, collision, interactables) {
         return 'You need to be down in the bedding to get your weight behind the dish.';
       }
       bowlMoved = true;
-      collision.setEnabled(bowlPlatform, true);
       bowlInteraction.prompt = 'The dish is in position.';
       cordInteraction.prompt = 'E / trigger — chew through the cord holding the branch';
       branchInteraction.prompt = 'The cord is holding the branch. Chew it through.';
@@ -350,6 +443,18 @@ export function createTerrarium(scene, collision, interactables) {
     const dishBlend = 1 - Math.exp(-7 * dt);
     dish.position.lerp(dishTarget, dishBlend);
     dishInner.position.lerp(dishInnerTarget, dishBlend);
+    updateLocalSolid(
+      dishCollider,
+      dish.position,
+      new THREE.Vector3(0.24, 0.045, 0.24),
+    );
+    updateLocalPlatform(
+      dishTopPlatform,
+      dish.position,
+      0.105,
+      0.105,
+      dish.position.y + 0.027,
+    );
 
     const branchTargetPos = branchReady ? branchReadyPosition : branchStartPosition;
     branch.position.lerp(branchTargetPos, 1 - Math.exp(-5 * dt));
@@ -363,7 +468,7 @@ export function createTerrarium(scene, collision, interactables) {
     group,
     update,
     getSpawn() {
-      return new THREE.Vector3(group.position.x + 0.18, insideFloor + 0.002, group.position.z + 0.18);
+      return new THREE.Vector3(group.position.x + 0.02, insideFloor + 0.002, group.position.z - 0.10);
     },
     getLookTarget() {
       return new THREE.Vector3(group.position.x, insideFloor + 0.12, worldFrontZ - 0.25);
