@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { box } from './helpers.js';
 
-export function createRoom(scene, collision) {
+export function createRoom(scene, collision, interactables = []) {
   const room = new THREE.Group();
   room.name = 'Huge Bedroom';
   scene.add(room);
@@ -11,7 +11,11 @@ export function createRoom(scene, collision) {
   const trimMat = new THREE.MeshStandardMaterial({ color: 0xe0ddd2, roughness: 0.8 });
 
   box(room, { name: 'Floor', size: [12, 0.12, 9], position: [0, -0.06, 0], material: floorMat, receiveShadow: true });
-  box(room, { name: 'Back wall', size: [12, 4.2, 0.12], position: [0, 2.1, 4.5], material: wallMat });
+  // Back wall is split around a real window opening so the final route can pass outside.
+  box(room, { name: 'Back wall left', size: [3.5, 4.2, 0.12], position: [-4.25, 2.1, 4.5], material: wallMat });
+  box(room, { name: 'Back wall right', size: [6.1, 4.2, 0.12], position: [2.95, 2.1, 4.5], material: wallMat });
+  box(room, { name: 'Back wall below window', size: [2.4, 1.375, 0.12], position: [-1.3, 0.6875, 4.5], material: wallMat });
+  box(room, { name: 'Back wall above window', size: [2.4, 1.275, 0.12], position: [-1.3, 3.5625, 4.5], material: wallMat });
   box(room, { name: 'Left wall', size: [0.12, 4.2, 9], position: [-6, 2.1, 0], material: wallMat });
   box(room, { name: 'Right wall', size: [0.12, 4.2, 9], position: [6, 2.1, 0], material: wallMat });
   box(room, { name: 'Front wall', size: [12, 4.2, 0.12], position: [0, 2.1, -4.5], material: wallMat });
@@ -198,6 +202,76 @@ export function createRoom(scene, collision) {
   // Nightstand.
   box(room, { name: 'NIGHTSTAND placeholder', size: [0.86, 0.76, 0.72], position: [-0.55, 0.38, 2.6], material: placeholder });
 
+  // Bed-to-nightstand connection: a paperback partly bridges the tiny gap.
+  const bridgeBook = box(room, {
+    name: 'BED NIGHTSTAND BOOK BRIDGE',
+    size: [0.62, 0.075, 0.32],
+    position: [-0.86, 0.82, 2.58],
+    color: 0x8b4f3d,
+  });
+  bridgeBook.rotation.z = -0.08;
+  collision.addPlatform({
+    minX: -1.15, maxX: -0.52,
+    minZ: 2.40, maxZ: 2.76,
+    y: 0.84,
+    tag: 'bed-nightstand-book',
+  });
+
+  // A dangling charger cable turns the nightstand into the route up to the desk.
+  const chargerMat = new THREE.MeshStandardMaterial({ color: 0x262829, roughness: 0.72 });
+  const chargerCable = box(room, {
+    name: 'DESK CHARGER CABLE',
+    size: [0.055, 0.53, 0.055],
+    position: [-0.22, 1.00, 3.07],
+    material: chargerMat,
+    castShadow: false,
+  });
+  chargerCable.rotation.z = 0.06;
+  for (let y = 0.80; y <= 1.20; y += 0.10) {
+    box(room, {
+      name: 'CHARGER CABLE GRIP',
+      size: [0.085, 0.014, 0.085],
+      position: [-0.22, y, 3.07],
+      color: 0x454849,
+      castShadow: false,
+    });
+  }
+  collision.addClimbable({
+    minX: -0.31, maxX: -0.13,
+    minY: 0.72, maxY: 1.24,
+    minZ: 2.98, maxZ: 3.16,
+    topY: 1.25,
+    exitX: -0.18,
+    exitZ: 3.28,
+    tag: 'nightstand-desk-cable',
+  });
+
+  // Desk clutter gives the desk top scale and creates a readable route landmark.
+  box(room, {
+    name: 'DESK BOOK STACK 1',
+    size: [0.55, 0.10, 0.38],
+    position: [0.36, 1.30, 3.46],
+    color: 0x486176,
+  });
+  box(room, {
+    name: 'DESK BOOK STACK 2',
+    size: [0.46, 0.09, 0.33],
+    position: [0.40, 1.395, 3.46],
+    color: 0x73594c,
+  });
+  collision.addPlatform({
+    minX: 0.08, maxX: 0.65,
+    minZ: 3.26, maxZ: 3.66,
+    y: 1.35,
+    tag: 'desk-book-1',
+  });
+  collision.addPlatform({
+    minX: 0.16, maxX: 0.64,
+    minZ: 3.29, maxZ: 3.63,
+    y: 1.44,
+    tag: 'desk-book-2',
+  });
+
   // Rug helps sell room scale and gives the floor a landmark.
   box(room, { name: 'RUG placeholder', size: [4.1, 0.018, 2.45], position: [0.25, 0.01, -1.05], color: 0x796f62, castShadow: false });
 
@@ -207,16 +281,172 @@ export function createRoom(scene, collision) {
   box(room, { size: [0.09, 2.58, 0.14], position: [3.24, 1.29, -4.34], material: trimMat });
   box(room, { size: [0.09, 2.58, 0.14], position: [4.66, 1.29, -4.34], material: trimMat });
 
-  // Window: clear visual target for later days.
-  box(room, { name: 'WINDOW FRAME', size: [2.4, 1.55, 0.08], position: [-1.3, 2.15, 4.39], color: 0xe1ded5 });
-  const windowMat = new THREE.MeshPhysicalMaterial({ color: 0x9fc3c8, transparent: true, opacity: 0.34, roughness: 0.12, transmission: 0.12 });
-  box(room, { name: 'WINDOW GLASS', size: [2.12, 1.27, 0.035], position: [-1.3, 2.15, 4.33], material: windowMat, castShadow: false });
-  box(room, { size: [0.075, 1.27, 0.09], position: [-1.3, 2.15, 4.28], color: 0xe1ded5 });
+  // Final window route. The sill is reachable from the desk by the hanging curtain cord.
+  box(room, { name: 'WINDOW FRAME TOP', size: [2.48, 0.10, 0.12], position: [-1.3, 2.94, 4.39], color: 0xe1ded5 });
+  box(room, { name: 'WINDOW FRAME BOTTOM', size: [2.48, 0.10, 0.22], position: [-1.3, 1.36, 4.33], color: 0xe1ded5 });
+  box(room, { name: 'WINDOW FRAME LEFT', size: [0.10, 1.58, 0.12], position: [-2.50, 2.15, 4.39], color: 0xe1ded5 });
+  box(room, { name: 'WINDOW FRAME RIGHT', size: [0.10, 1.58, 0.12], position: [-0.10, 2.15, 4.39], color: 0xe1ded5 });
+  box(room, { name: 'WINDOW CENTER BAR', size: [0.075, 1.48, 0.09], position: [-1.3, 2.15, 4.28], color: 0xe1ded5 });
+
+  const windowMat = new THREE.MeshPhysicalMaterial({
+    color: 0x9fc3c8,
+    transparent: true,
+    opacity: 0.28,
+    roughness: 0.10,
+    transmission: 0.18,
+    depthWrite: false,
+  });
+  const windowGlass = box(room, {
+    name: 'WINDOW GLASS',
+    size: [2.10, 1.22, 0.035],
+    position: [-1.3, 2.15, 4.31],
+    material: windowMat,
+    castShadow: false,
+  });
+
+  // Exterior sill makes the final step readable and prevents an instant fall after escaping.
+  box(room, {
+    name: 'EXTERIOR WINDOW SILL',
+    size: [2.30, 0.10, 0.46],
+    position: [-1.3, 1.31, 4.57],
+    color: 0xc8c5bb,
+  });
+
+  // Curtain cord from the desk to the sill.
+  const curtainCord = box(room, {
+    name: 'WINDOW CURTAIN CORD',
+    size: [0.045, 0.42, 0.045],
+    position: [-0.24, 1.36, 4.12],
+    color: 0xb7a57f,
+    castShadow: false,
+  });
+  curtainCord.rotation.z = -0.08;
+  collision.addClimbable({
+    minX: -0.34, maxX: -0.12,
+    minY: 1.20, maxY: 1.56,
+    minZ: 4.01, maxZ: 4.22,
+    topY: 1.41,
+    exitX: -0.30,
+    exitZ: 4.24,
+    tag: 'desk-window-cord',
+  });
+
+  // Paperclip tool on the desk.
+  const metalMat = new THREE.MeshStandardMaterial({ color: 0xb9bec1, roughness: 0.28, metalness: 0.78 });
+  const paperclip = new THREE.Group();
+  paperclip.name = 'PAPERCLIP TOOL';
+  paperclip.position.set(0.82, 1.30, 3.38);
+  room.add(paperclip);
+  const clipOuter = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.009, 6, 14, Math.PI * 1.65), metalMat);
+  clipOuter.rotation.x = Math.PI / 2;
+  clipOuter.rotation.z = 0.22;
+  paperclip.add(clipOuter);
+  const clipStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 7), metalMat);
+  clipStem.rotation.z = Math.PI / 2;
+  clipStem.position.set(0.025, 0, -0.035);
+  paperclip.add(clipStem);
+
+  const windowLatch = new THREE.Group();
+  windowLatch.name = 'WINDOW LATCH';
+  windowLatch.position.set(-1.28, 1.54, 4.23);
+  room.add(windowLatch);
+  box(windowLatch, {
+    name: 'WINDOW LATCH BODY',
+    size: [0.18, 0.055, 0.07],
+    position: [0, 0, 0],
+    color: 0x4c4f4f,
+    metalness: 0.55,
+  });
+  const latchLever = box(windowLatch, {
+    name: 'WINDOW LATCH LEVER',
+    size: [0.12, 0.025, 0.035],
+    position: [0.02, 0.045, -0.01],
+    color: 0x8d9292,
+    metalness: 0.65,
+  });
+
+  const routeState = {
+    paperclipTaken: false,
+    windowUnlatched: false,
+    windowOpened: false,
+    escaped: false,
+  };
+  let windowOpenTarget = 0;
+
+  const windowGlassCollider = collision.addSolid(
+    new THREE.Vector3(-2.36, 1.39, 4.27),
+    new THREE.Vector3(-0.24, 2.82, 4.36),
+    'window-glass',
+  );
+
+  const paperclipInteraction = {
+    object: paperclip,
+    distance: 0.34,
+    prompt: 'E / trigger — take the paperclip',
+    action: ({ playerPosition } = {}) => {
+      if (routeState.paperclipTaken) return 'You already have the paperclip.';
+      if (!playerPosition || playerPosition.y < 1.18) return 'You need to reach the desk first.';
+      routeState.paperclipTaken = true;
+      paperclip.visible = false;
+      paperclipInteraction.prompt = 'Paperclip collected.';
+      return 'You hook the paperclip in your teeth. It might fit a small latch.';
+    },
+  };
+
+  const latchInteraction = {
+    object: windowLatch,
+    distance: 0.34,
+    prompt: 'E / trigger — inspect the window latch',
+    action: ({ playerPosition } = {}) => {
+      if (!playerPosition || playerPosition.y < 1.32) return 'The latch is above you. Reach the windowsill first.';
+      if (!routeState.paperclipTaken) return 'Your paws cannot get under the latch. Something thin and metal could.';
+      if (routeState.windowUnlatched) return 'The latch is already released.';
+      routeState.windowUnlatched = true;
+      latchLever.rotation.z = 0.78;
+      latchInteraction.prompt = 'The latch is released.';
+      windowInteraction.prompt = 'E / trigger — push the window open';
+      return 'The paperclip slips underneath. CLICK — the window latch releases.';
+    },
+  };
+
+  const windowInteraction = {
+    object: windowGlass,
+    distance: 0.38,
+    prompt: 'The window is locked.',
+    action: ({ playerPosition } = {}) => {
+      if (!routeState.windowUnlatched) return 'The window will not move while the latch is locked.';
+      if (!playerPosition || playerPosition.y < 1.30) return 'You need leverage from the sill.';
+      if (routeState.windowOpened) return 'The window is already open.';
+      routeState.windowOpened = true;
+      windowOpenTarget = 1;
+      collision.setEnabled(windowGlassCollider, false);
+      windowInteraction.prompt = 'The window is open.';
+      return 'You lean into the glass. It slides upward, spilling cold air into the room.';
+    },
+  };
+
+  interactables.push(paperclipInteraction, latchInteraction, windowInteraction);
+
+  collision.addPlatform({
+    minX: -2.45, maxX: -0.15,
+    minZ: 4.14, maxZ: 4.43,
+    y: 1.41,
+    tag: 'window-inner-sill',
+  });
+  collision.addPlatform({
+    minX: -2.45, maxX: -0.15,
+    minZ: 4.42, maxZ: 4.80,
+    y: 1.36,
+    tag: 'window-outer-sill',
+  });
 
   // Basic room collision.
   collision.addSolid(new THREE.Vector3(-6.1, -1, -4.62), new THREE.Vector3(-5.86, 5, 4.62), 'wall-left');
   collision.addSolid(new THREE.Vector3(5.86, -1, -4.62), new THREE.Vector3(6.1, 5, 4.62), 'wall-right');
-  collision.addSolid(new THREE.Vector3(-6.1, -1, 4.38), new THREE.Vector3(6.1, 5, 4.62), 'wall-back');
+  collision.addSolid(new THREE.Vector3(-6.1, -1, 4.38), new THREE.Vector3(-2.50, 5, 4.62), 'wall-back-left');
+  collision.addSolid(new THREE.Vector3(-0.10, -1, 4.38), new THREE.Vector3(6.1, 5, 4.62), 'wall-back-right');
+  collision.addSolid(new THREE.Vector3(-2.50, -1, 4.38), new THREE.Vector3(-0.10, 1.37, 4.62), 'wall-back-window-bottom');
+  collision.addSolid(new THREE.Vector3(-2.50, 2.93, 4.38), new THREE.Vector3(-0.10, 5, 4.62), 'wall-back-window-top');
   collision.addSolid(new THREE.Vector3(-6.1, -1, -4.62), new THREE.Vector3(6.1, 5, -4.38), 'wall-front');
 
   // Furniture collision follows the visible shapes rather than using oversized solid blocks.
@@ -247,17 +477,56 @@ export function createRoom(scene, collision) {
   collision.addPlatform({ minX: 2.5, maxX: 4.8, minZ: 2.27, maxZ: 3.17, y: 1.02, tag: 'dresser-top' });
   collision.addPlatform({ minX: 2.56, maxX: 4.74, minZ: 1.88, maxZ: 2.39, y: 1.06, tag: 'terrarium-front-ledge' });
 
+  function update(dt, playerPosition = null) {
+    const targetY = routeState.windowOpened ? 2.92 : 2.15;
+    windowGlass.position.y = THREE.MathUtils.damp(windowGlass.position.y, targetY, 4.2, dt);
+
+    if (
+      routeState.windowOpened &&
+      playerPosition &&
+      playerPosition.y >= 1.26 &&
+      playerPosition.x >= -2.40 &&
+      playerPosition.x <= -0.20 &&
+      playerPosition.z > 4.48
+    ) {
+      routeState.escaped = true;
+    }
+  }
+
   return {
     room,
+    update,
+    routeState,
     hideZone,
     floorStart: new THREE.Vector3(4.48, 0.002, 2.35),
     terrariumDresserTop: 1.02,
     bedTopZone: {
       minX: -4.0,
-      maxX: -1.0,
-      minZ: 0.88,
-      maxZ: 3.08,
+      maxX: -0.90,
+      minZ: 0.78,
+      maxZ: 3.12,
       minY: 0.80,
+    },
+    nightstandZone: {
+      minX: -0.96,
+      maxX: -0.14,
+      minZ: 2.25,
+      maxZ: 2.96,
+      minY: 0.70,
+    },
+    deskTopZone: {
+      minX: -0.34,
+      maxX: 2.34,
+      minZ: 3.12,
+      maxZ: 3.98,
+      minY: 1.18,
+    },
+    windowSillZone: {
+      minX: -2.42,
+      maxX: -0.18,
+      minZ: 4.12,
+      maxZ: 4.46,
+      minY: 1.32,
     },
   };
 }
