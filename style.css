@@ -126,3 +126,46 @@ button {
   background: rgba(255,255,255,.16);
   box-shadow: 0 0 10px rgba(255,255,255,.32), 0 0 0 1px rgba(0,0,0,.3);
 }
+
+.escape-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 45%, rgba(15,24,20,.28), rgba(6,9,8,.72));
+  animation: escapeFade .8s ease both;
+}
+.escape-banner[hidden] { display: none; }
+.escape-card {
+  text-align: center;
+  padding: 24px 30px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(8,12,10,.72);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.34);
+}
+.escape-kicker {
+  font-size: 11px;
+  letter-spacing: .22em;
+  opacity: .64;
+}
+.escape-title {
+  margin-top: 6px;
+  font-weight: 900;
+  font-size: clamp(38px, 8vw, 82px);
+  letter-spacing: -.05em;
+  line-height: .9;
+}
+.escape-copy {
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: .72;
+}
+@keyframes escapeFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
