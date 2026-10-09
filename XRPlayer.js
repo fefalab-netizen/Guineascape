@@ -12,6 +12,7 @@ export class XRPlayer {
     this.climbSpeed = 0.38;
     this.gravity = 2.6;
     this.velocityY = 0;
+    this.moveVelocity = new THREE.Vector3();
     this.radius = 0.055;
     this.bodyHeight = 0.14;
     this.snapLatch = false;
@@ -89,7 +90,9 @@ export class XRPlayer {
         return;
       }
 
-      const stepUp = 0.045;
+      if (!this.grounded) return;
+
+      const stepUp = 0.025;
       const stepped = test.clone();
       stepped.y += stepUp;
       if (!this.collision.intersectsPlayer(stepped, this.radius, this.bodyHeight)) {
@@ -148,17 +151,23 @@ export class XRPlayer {
 
       if (this.rig.position.y >= climbable.topY - 0.01) {
         this.rig.position.y = climbable.topY + 0.002;
-        if (climbable.exitX !== null) this.rig.position.x = climbable.exitX;
-        if (climbable.exitZ !== null) this.rig.position.z = climbable.exitZ;
+        if (climbable.exitX !== null) this.rig.position.x = THREE.MathUtils.damp(this.rig.position.x, climbable.exitX, 18, dt);
+        if (climbable.exitZ !== null) this.rig.position.z = THREE.MathUtils.damp(this.rig.position.z, climbable.exitZ, 18, dt);
+        this.collision.resolvePlayer(this.rig.position, this.radius, this.bodyHeight);
         this.grounded = true;
       }
     } else {
-      const delta = right
+      const desired = right
         .multiplyScalar(moveX)
-        .add(forward.multiplyScalar(-moveY))
-        .multiplyScalar(this.speed * dt);
+        .add(forward.multiplyScalar(-moveY));
 
-      this.tryMove(delta);
+      if (desired.lengthSq() > 1) desired.normalize();
+      desired.multiplyScalar(this.speed);
+
+      const accel = desired.lengthSq() > 0.0001 ? 12 : 18;
+      const blend = 1 - Math.exp(-accel * dt);
+      this.moveVelocity.lerp(desired, blend);
+      this.tryMove(this.moveVelocity.clone().multiplyScalar(dt));
 
       this.velocityY -= this.gravity * dt;
       const vertical = this.collision.moveVertical(
