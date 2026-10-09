@@ -103,16 +103,29 @@ export class DesktopPlayer {
   }
 
   tryHorizontal(delta) {
-    if (Math.abs(delta.x) > 0) {
+    const tryAxis = (axis, amount) => {
+      if (Math.abs(amount) <= 0) return;
       const test = this.position.clone();
-      test.x += delta.x;
-      if (!this.collision.intersectsPlayer(test, this.radius, this.bodyHeight)) this.position.x = test.x;
-    }
-    if (Math.abs(delta.z) > 0) {
-      const test = this.position.clone();
-      test.z += delta.z;
-      if (!this.collision.intersectsPlayer(test, this.radius, this.bodyHeight)) this.position.z = test.z;
-    }
+      test[axis] += amount;
+
+      if (!this.collision.intersectsPlayer(test, this.radius, this.bodyHeight)) {
+        this.position[axis] = test[axis];
+        return;
+      }
+
+      // Hamsters should naturally scramble over very small lips rather than snagging.
+      const stepUp = 0.045;
+      const stepped = test.clone();
+      stepped.y += stepUp;
+      if (!this.collision.intersectsPlayer(stepped, this.radius, this.bodyHeight)) {
+        this.position.copy(stepped);
+        this.velocityY = 0;
+        this.grounded = true;
+      }
+    };
+
+    tryAxis('x', delta.x);
+    tryAxis('z', delta.z);
   }
 
   updateClimbing(dt) {
@@ -161,16 +174,21 @@ export class DesktopPlayer {
 
     if (!climbingNow) {
       this.velocityY -= this.gravity * dt;
-      this.position.y += this.velocityY * dt;
+      const vertical = this.collision.moveVertical(
+        this.position,
+        this.velocityY * dt,
+        this.radius,
+        this.bodyHeight,
+      );
 
-      const ground = this.collision.groundBelow(this.position, 0.075);
-      if (this.position.y <= ground) {
-        this.position.y = ground;
+      if (vertical.grounded) {
         this.velocityY = 0;
         this.grounded = true;
       } else {
         this.grounded = false;
       }
+
+      if (vertical.hitCeiling && this.velocityY > 0) this.velocityY = 0;
     }
 
     const resolved = this.collision.resolvePlayer(this.position, this.radius, this.bodyHeight);
