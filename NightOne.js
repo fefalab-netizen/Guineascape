@@ -31,6 +31,8 @@ export class NightOne {
     this.lastFootstep = -99;
     this.flashlightPhase = 0;
     this.darkness = 0;
+    this.exposure = 0;
+    this.maxExposure = 0.72;
 
     this.dayBackground = new THREE.Color(0x9fa69f);
     this.nightBackground = new THREE.Color(0x12171c);
@@ -149,9 +151,37 @@ export class NightOne {
     );
   }
 
+  flashlightSeesPlayer() {
+    if (this.isHidden()) return false;
+
+    const p = this.getPlayerPosition();
+    const dx = p.x - this.floorPool.position.x;
+    const dz = p.z - this.floorPool.position.z;
+    const horizontalDistance = Math.hypot(dx, dz);
+
+    // The visible floor pool is the gameplay footprint of the beam.
+    // Slightly generous so the visual and detection feel consistent.
+    return horizontalDistance <= 0.88 && p.y <= 0.32;
+  }
+
+  updateExposure(dt) {
+    if (this.flashlightSeesPlayer()) {
+      this.exposure = Math.min(this.maxExposure, this.exposure + dt);
+    } else {
+      this.exposure = Math.max(0, this.exposure - dt * 1.8);
+    }
+
+    const danger = this.exposure / this.maxExposure;
+    this.floorPool.material.opacity = THREE.MathUtils.lerp(0.34, 0.58, danger);
+    this.beamMesh.material.opacity = THREE.MathUtils.lerp(0.10, 0.18, danger);
+
+    if (this.exposure >= this.maxExposure) this.fail();
+  }
+
   fail() {
     if (this.state === 'failed' || this.complete) return;
     this.state = 'failed';
+    this.exposure = 0;
     this.flashlight.intensity = 8;
     this.onMessage?.('The light stops on you. Heavy footsteps rush closer.');
     this.onObjective?.('Caught. Returning to the terrarium...');
@@ -167,6 +197,7 @@ export class NightOne {
     this.lastFootstep = -99;
     this.flashlightPhase = 0;
     this.darkness = 0;
+    this.exposure = 0;
     this.flashlight.intensity = 0;
     this.beamMesh.material.opacity = 0;
     this.floorPool.material.opacity = 0;
@@ -187,6 +218,7 @@ export class NightOne {
     if (this.complete) return;
     this.complete = true;
     this.state = 'complete';
+    this.exposure = 0;
     this.flashlight.intensity = 0;
     this.beamMesh.material.opacity = 0;
     this.floorPool.material.opacity = 0;
@@ -265,8 +297,11 @@ export class NightOne {
       if (this.time >= 5.5) {
         this.state = 'search';
         this.time = 0;
+        this.exposure = 0;
+        this.flashlight.position.set(3.45, 1.55, -2.62);
         this.flashlight.intensity = 5.2;
         this.onMessage?.('A flashlight clicks on.');
+        this.onObjective?.('Stay out of the beam — or get under cover.');
       }
       return;
     }
@@ -303,16 +338,16 @@ export class NightOne {
         this.thump(0.5);
       }
 
-      // Night 1 is forgiving: the player only gets caught if they remain exposed
-      // once the search has been active for a moment.
-      if (this.time > 2.0 && !this.isHidden()) {
-        this.fail();
-        return;
+      // Detection now follows the actual visible flashlight pool.
+      if (this.time > 0.75) {
+        this.updateExposure(dt);
+        if (this.state === 'failed') return;
       }
 
       if (this.time >= 7.5) {
         this.state = 'tank-check';
         this.time = 0;
+        this.exposure = 0;
         this.flashlight.intensity = 3.6;
         this.beamMesh.material.opacity = 0.10;
         this.floorPool.material.opacity = 0.24;
