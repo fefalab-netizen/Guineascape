@@ -88,7 +88,7 @@ scene.add(sun);
 
 const collision = new CollisionWorld();
 const interactables = [];
-const roomMeta = createRoom(scene, collision);
+const roomMeta = createRoom(scene, collision, interactables);
 const terrarium = createTerrarium(scene, collision, interactables);
 
 const spawn = terrarium.getSpawn();
@@ -242,6 +242,10 @@ const nightOne = new NightOne({
 
 const dayTwo = new DayTwo({
   bedTopZone: roomMeta.bedTopZone,
+  nightstandZone: roomMeta.nightstandZone,
+  deskTopZone: roomMeta.deskTopZone,
+  windowSillZone: roomMeta.windowSillZone,
+  routeState: roomMeta.routeState,
   getPlayerPosition: getActivePlayerPosition,
   onMessage: toast,
   onObjective: (message) => {
@@ -296,6 +300,7 @@ const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.04);
   terrarium.update(dt);
+  roomMeta.update?.(dt, getActivePlayerPosition());
 
   const puzzleState = terrarium.getPuzzleState?.();
   const playerPos = getActivePlayerPosition();
