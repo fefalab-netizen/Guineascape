@@ -193,6 +193,7 @@ export function createTerrarium(scene, collision, interactables) {
   let escaped = false;
   let bowlPlatform = null;
   let branchClimbable = null;
+  const branchCollisionHandles = [];
   const branchStartPosition = branch.position.clone();
   const branchStartRotation = branch.rotation.clone();
   const branchReadyPosition = new THREE.Vector3(0.02, bottom + 0.31, -0.16);
@@ -234,6 +235,44 @@ export function createTerrarium(scene, collision, interactables) {
     handle.maxZ = worldCenter.z + halfZ;
     handle.y = group.position.y + topY;
   }
+  function updateBranchCollision() {
+    const branchLength = 0.70;
+    const segmentCount = 4;
+    const axis = new THREE.Vector3(0, 1, 0).applyEuler(branch.rotation).normalize();
+
+    while (branchCollisionHandles.length < segmentCount) {
+      branchCollisionHandles.push(
+        collision.addSolid(
+          new THREE.Vector3(),
+          new THREE.Vector3(),
+          'terrarium-branch',
+        ),
+      );
+    }
+
+    for (let i = 0; i < segmentCount; i++) {
+      const t0 = -0.5 + i / segmentCount;
+      const t1 = -0.5 + (i + 1) / segmentCount;
+      const p0 = branch.position.clone().addScaledVector(axis, branchLength * t0);
+      const p1 = branch.position.clone().addScaledVector(axis, branchLength * t1);
+      const world0 = localToWorld(p0.x, p0.y, p0.z);
+      const world1 = localToWorld(p1.x, p1.y, p1.z);
+      const pad = 0.032;
+
+      const handle = branchCollisionHandles[i];
+      handle.min.set(
+        Math.min(world0.x, world1.x) - pad,
+        Math.min(world0.y, world1.y) - pad,
+        Math.min(world0.z, world1.z) - pad,
+      );
+      handle.max.set(
+        Math.max(world0.x, world1.x) + pad,
+        Math.max(world0.y, world1.y) + pad,
+        Math.max(world0.z, world1.z) + pad,
+      );
+    }
+  }
+
 
   collision.addPlatform({
     minX: worldLeftX + 0.055, maxX: worldRightX - 0.055,
@@ -299,6 +338,13 @@ export function createTerrarium(scene, collision, interactables) {
     tag: 'terrarium-water-dish-top',
   });
 
+  // The smaller branch is also physically solid.
+  addLocalSolid(
+    new THREE.Vector3(-0.19, bottom + 0.34, 0.02),
+    new THREE.Vector3(0.22, 0.055, 0.12),
+    'terrarium-small-branch',
+  );
+
   // Food dish collider moves with the animated puzzle object.
   const dishCollider = addLocalSolid(
     dish.position,
@@ -355,6 +401,8 @@ export function createTerrarium(scene, collision, interactables) {
     tag: 'puzzle-branch',
   });
   collision.setEnabled(branchClimbable, false);
+  updateBranchCollision();
+
 
   const bowlInteraction = {
     object: dish,
@@ -462,6 +510,7 @@ export function createTerrarium(scene, collision, interactables) {
     branch.rotation.x = THREE.MathUtils.damp(branch.rotation.x, targetEuler.x, 5, dt);
     branch.rotation.y = THREE.MathUtils.damp(branch.rotation.y, targetEuler.y, 5, dt);
     branch.rotation.z = THREE.MathUtils.damp(branch.rotation.z, targetEuler.z, 5, dt);
+    updateBranchCollision();
   }
 
   return {
